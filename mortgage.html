@@ -1,1181 +1,768 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mortgage Visualizer</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface2: #263347;
-      --border: #334155;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --accent: #60a5fa;
-      --accent2: #3b82f6;
-      --radius: 10px;
-      --shadow: 0 4px 24px rgba(0,0,0,0.4);
-      --input-bg: #111827;
-    }
-    [data-theme="light"] {
-      --bg: #f1f5f9;
-      --surface: #ffffff;
-      --surface2: #f8fafc;
-      --border: #e2e8f0;
-      --text: #0f172a;
-      --text-muted: #475569;
-      --text-dim: #94a3b8;
-      --accent: #2563eb;
-      --accent2: #1d4ed8;
-      --shadow: 0 4px 24px rgba(0,0,0,0.08);
-      --input-bg: #f8fafc;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    /* ---- Header ---- */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 24px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.2);
-    }
-    .header-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: -0.01em;
-    }
-    .theme-btn {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: background 0.2s;
-    }
-    .theme-btn:hover { background: var(--border); }
-
-    /* ---- Layout ---- */
-    .main {
-      display: flex;
-      min-height: calc(100vh - 53px);
-    }
-    .left-panel {
-      width: 310px;
-      min-width: 310px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      padding: 20px 18px;
-      overflow-y: auto;
-      height: calc(100vh - 53px);
-      position: sticky;
-      top: 53px;
-    }
-    .right-panel {
-      flex: 1;
-      padding: 24px;
-      overflow-y: auto;
-      min-width: 0;
-    }
-
-    /* ---- Input sections ---- */
-    .section { margin-bottom: 22px; }
-    .section-title {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-    .field { margin-bottom: 12px; }
-    .field label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 5px;
-    }
-    .field-hint {
-      font-size: 10px;
-      color: var(--text-dim);
-      margin-top: 3px;
-    }
-    input[type="number"],
-    input[type="month"],
-    select {
-      width: 100%;
-      background: var(--input-bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 7px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.2s;
-      -webkit-appearance: none;
-    }
-    input:focus, select:focus { border-color: var(--accent); }
-    input[type="range"] {
-      width: 100%;
-      margin-top: 5px;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-    .field-row { display: flex; gap: 8px; align-items: flex-end; }
-    .field-row .field { flex: 1; margin-bottom: 0; }
-
-    /* ---- Toggle groups ---- */
-    .toggle-group {
-      display: flex;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .toggle-btn {
-      flex: 1;
-      padding: 6px 4px;
-      text-align: center;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-    .toggle-btn.active {
-      background: var(--accent2);
-      color: #fff;
-    }
-    .toggle-btn:not(.active):hover { background: var(--surface2); }
-
-    /* ---- Summary cards ---- */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-    }
-    .card-label {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text-dim);
-      margin-bottom: 6px;
-    }
-    .card-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.2;
-    }
-    .card-value.highlight { color: var(--accent); }
-    .card-sub { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
-
-    /* ---- Chart cards ---- */
-    .chart-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      margin-bottom: 14px;
-    }
-    .chart-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 14px;
-    }
-    .chart-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 14px;
-    }
-    canvas { display: block; width: 100%; }
-    #chartA { height: 300px; }
-    #chartB { height: 220px; }
-    #chartC { height: 220px; }
-
-    /* ---- Legend ---- */
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-    /* ---- Table ---- */
-    .table-controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .table-wrapper {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: auto;
-      max-height: 440px;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    thead th {
-      background: var(--surface2);
-      padding: 9px 12px;
-      text-align: right;
-      font-weight: 600;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-dim);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-    thead th:first-child { text-align: left; }
-    tbody td {
-      padding: 8px 12px;
-      text-align: right;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      white-space: nowrap;
-    }
-    tbody td:first-child { text-align: left; font-weight: 500; color: var(--text-muted); }
-    tbody tr:hover { background: var(--surface2); }
-    tbody tr:last-child td { border-bottom: none; }
-    .total-col { font-weight: 600; color: var(--accent) !important; }
-
-    /* ---- Buttons ---- */
-    .btn {
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s;
-    }
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-    }
-    .btn-outline:hover { background: var(--surface2); color: var(--text); }
-
-    /* ---- Tooltip ---- */
-    #tooltip {
-      position: fixed;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 12px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.12s;
-      z-index: 9999;
-      box-shadow: var(--shadow);
-      min-width: 180px;
-    }
-    #tooltip.visible { opacity: 1; }
-    .tt-title { font-weight: 700; margin-bottom: 7px; color: var(--text); font-size: 13px; }
-    .tt-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 3px;
-      color: var(--text-muted);
-    }
-    .tt-row strong { color: var(--text); font-weight: 600; }
-    .tt-divider { border-top: 1px solid var(--border); margin: 6px 0; }
-
-    /* ---- Empty state ---- */
-    .empty-state {
-      text-align: center;
-      padding: 80px 20px;
-      color: var(--text-dim);
-    }
-    .empty-icon { font-size: 48px; margin-bottom: 14px; }
-    .empty-text { font-size: 15px; line-height: 1.6; }
-    .empty-hint { font-size: 12px; margin-top: 8px; color: var(--text-dim); }
-
-    /* ---- Mobile panel toggle ---- */
-    .panel-toggle {
-      display: none;
-      width: 100%;
-      background: none;
-      border: none;
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 700;
-      padding: 0 0 14px 0;
-      cursor: pointer;
-      text-align: left;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    /* ---- Scrollbar ---- */
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* ---- Responsive ---- */
-    @media (max-width: 820px) {
-      .main { flex-direction: column; }
-      .left-panel {
-        width: 100%;
-        min-width: unset;
-        height: auto;
-        position: static;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        padding: 16px;
-      }
-      .panel-toggle { display: flex; }
-      .panel-content { display: none; }
-      .panel-content.open { display: block; padding-top: 12px; }
-      .right-panel { padding: 16px; }
-      .chart-grid { grid-template-columns: 1fr; }
-      .summary-grid { grid-template-columns: repeat(2, 1fr); }
-      #chartA { height: 240px; }
-      #chartB, #chartC { height: 200px; }
-    }
-    @media (max-width: 480px) {
-      .summary-grid { grid-template-columns: repeat(2, 1fr); }
-      .card-value { font-size: 16px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mortgage Visualizer</title>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#263347;--border:#334155;--text:#f1f5f9;--text-muted:#94a3b8;--text-dim:#64748b;--accent:#60a5fa;--accent2:#3b82f6;--radius:10px;--shadow:0 4px 24px rgba(0,0,0,.4);--input-bg:#111827}
+[data-theme="light"]{--bg:#f1f5f9;--surface:#fff;--surface2:#f8fafc;--border:#e2e8f0;--text:#0f172a;--text-muted:#475569;--text-dim:#94a3b8;--accent:#2563eb;--accent2:#1d4ed8;--shadow:0 4px 24px rgba(0,0,0,.08);--input-bg:#f8fafc}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 1px 8px rgba(0,0,0,.2)}
+.header-title{font-size:17px;font-weight:700;color:var(--accent);letter-spacing:-.01em}
+.header-btns{display:flex;gap:8px;align-items:center}
+.theme-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:background .2s}
+.theme-btn:hover{background:var(--border)}
+.main{display:flex;min-height:calc(100vh - 53px)}
+.left-panel{width:310px;min-width:310px;background:var(--surface);border-right:1px solid var(--border);padding:20px 18px;overflow-y:auto;height:calc(100vh - 53px);position:sticky;top:53px}
+.right-panel{flex:1;padding:24px;overflow-y:auto;min-width:0}
+.section{margin-bottom:22px}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:5px}
+.field-hint{font-size:10px;color:var(--text-dim);margin-top:3px}
+input[type="number"],input[type="text"],select{width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--accent)}
+input[type="range"]{width:100%;margin-top:5px;accent-color:var(--accent);cursor:pointer}
+.field-row{display:flex;gap:8px;align-items:flex-end}
+.field-row .field{flex:1;margin-bottom:0}
+.toggle-group{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.toggle-btn{flex:1;padding:6px 4px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;color:var(--text-muted);background:transparent;border:none;transition:all .15s;white-space:nowrap}
+.toggle-btn.active{background:var(--accent2);color:#fff}
+.toggle-btn:not(.active):hover{background:var(--surface2)}
+.tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab-btn{padding:10px 22px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn:hover:not(.active){color:var(--text)}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:6px}
+.card-value{font-size:19px;font-weight:700;color:var(--text);line-height:1.2}
+.card-value.highlight{color:var(--accent)}
+.card-value.positive{color:#10b981}
+.card-value.negative{color:#f43f5e}
+.card-sub{font-size:10px;color:var(--text-dim);margin-top:3px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+.chart-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.chart-title{font-size:12px;font-weight:600;color:var(--text-muted)}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.chart-scroll-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:4px}
+.chart-scroll-wrap canvas{display:block}
+#chartA{height:280px;width:100%}
+#chartB{height:220px;width:100%}
+#chartC{height:220px;width:100%}
+#chartOverlay{height:300px;width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.legend-group-label{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-dim);width:100%;margin-top:6px}
+.table-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.table-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:auto;max-height:440px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--surface2);padding:9px 12px;text-align:right;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+tbody td:first-child{text-align:left;font-weight:500;color:var(--text-muted)}
+tbody tr:hover{background:var(--surface2)}
+tbody tr:last-child td{border-bottom:none}
+.total-col{font-weight:600;color:var(--accent)!important}
+.refi-inputs-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:16px}
+.refi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted)}
+.btn-outline:hover{background:var(--surface2);color:var(--text)}
+#tooltip{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;pointer-events:none;opacity:0;transition:opacity .12s;z-index:9999;box-shadow:var(--shadow);min-width:190px}
+#tooltip.visible{opacity:1}
+.tt-title{font-weight:700;margin-bottom:7px;color:var(--text);font-size:13px}
+.tt-row{display:flex;justify-content:space-between;gap:14px;margin-bottom:3px;color:var(--text-muted)}
+.tt-row strong{color:var(--text);font-weight:600}
+.tt-divider{border-top:1px solid var(--border);margin:6px 0}
+.tt-section{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-dim);margin:6px 0 3px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-dim)}
+.empty-icon{font-size:48px;margin-bottom:14px}
+.empty-text{font-size:15px;line-height:1.6}
+.empty-hint{font-size:12px;margin-top:8px}
+.panel-toggle{display:none;width:100%;background:none;border:none;color:var(--text);font-size:14px;font-weight:700;padding:0 0 14px;cursor:pointer;text-align:left;align-items:center;justify-content:space-between}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.zoom-bar{border-top:1px solid var(--border);margin-top:8px;padding:8px 2px 2px;display:flex;flex-direction:column;gap:5px}
+.zoom-row{display:flex;align-items:center;gap:10px}
+.zoom-label{font-size:11px;color:var(--text-muted);white-space:nowrap;min-width:90px}
+@media(max-width:820px){
+  .main{flex-direction:column}
+  .left-panel{width:100%;min-width:unset;height:auto;position:static;border-right:none;border-bottom:1px solid var(--border);padding:16px}
+  .panel-toggle{display:flex}
+  .panel-content{display:none}
+  .panel-content.open{display:block;padding-top:12px}
+  .right-panel{padding:16px}
+  .chart-grid{grid-template-columns:1fr}
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+  .refi-grid{grid-template-columns:1fr}
+  #chartB,#chartC{height:200px}
+  #chartOverlay{height:260px;width:100%}
+}
+@media(max-width:480px){.card-value{font-size:16px}.tab-btn{padding:10px 14px;font-size:12px}}
+</style>
 </head>
 <body>
-
-<div id="tooltip">
-  <div class="tt-title" id="tt-title"></div>
-  <div id="tt-body"></div>
-</div>
-
+<div id="tooltip"><div class="tt-title" id="tt-title"></div><div id="tt-body"></div></div>
 <header class="header">
-  <div class="header-title">Mortgage Visualizer</div>
-  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">Light Mode</button>
+  <div class="header-title" data-i18n="app-title">Mortgage Visualizer</div>
+  <div class="header-btns">
+    <button class="theme-btn" id="langBtn" onclick="toggleLang()">中文</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">Light Mode</button>
+  </div>
 </header>
-
 <div class="main">
-  <!-- Left: Input Panel -->
   <div class="left-panel">
     <button class="panel-toggle" onclick="togglePanel()">
-      <span>Parameters</span>
-      <span id="panelArrow">&#9660;</span>
+      <span data-i18n="params">Parameters</span><span id="panelArrow">&#9660;</span>
     </button>
     <div class="panel-content open" id="panelContent">
-
-      <!-- Loan -->
       <div class="section">
-        <div class="section-title">Loan</div>
-
+        <div class="section-title" data-i18n="section-loan">Loan</div>
+        <div class="field"><label data-i18n="label-start-month">Start Month</label><input type="text" id="startMonth" data-i18n-ph="ph-start-month" placeholder="YYYY-MM e.g. 2025-03" oninput="update()" onchange="update()"></div>
+        <div class="field"><label data-i18n="label-loan-balance">Loan Balance ($)</label><input type="number" id="loanBalance" data-i18n-ph="ph-loan-balance" placeholder="e.g. 450000" min="0" step="1000" oninput="update()"></div>
         <div class="field">
-          <label>Start Month</label>
-          <input type="text" id="startMonth" placeholder="YYYY-MM  e.g. 2025-03" onchange="update()" oninput="update()">
+          <label data-i18n="label-apr">Annual Interest Rate (%)</label>
+          <input type="number" id="interestRate" placeholder="e.g. 6.5" min="0" max="30" step="0.05" oninput="document.getElementById('rateSlider').value=this.value||0;update()">
+          <input type="range" id="rateSlider" min="0" max="15" step="0.05" value="6.5" oninput="document.getElementById('interestRate').value=parseFloat(this.value).toFixed(2);update()">
+          <div class="field-hint" data-i18n="hint-apr">Per year (APR)</div>
         </div>
-
         <div class="field">
-          <label>Loan Balance ($)</label>
-          <input type="number" id="loanBalance" placeholder="e.g. 450000" min="0" step="1000" oninput="update()">
-        </div>
-
-        <div class="field">
-          <label>Annual Interest Rate (%)</label>
-          <input type="number" id="interestRate" placeholder="e.g. 6.5" min="0" max="30" step="0.05"
-            oninput="document.getElementById('rateSlider').value=this.value||0; update()">
-          <input type="range" id="rateSlider" min="0" max="15" step="0.05" value="6.5"
-            oninput="document.getElementById('interestRate').value=parseFloat(this.value).toFixed(2); update()">
-          <div class="field-hint">Per year (APR)</div>
-        </div>
-
-        <div class="field">
-          <label>Loan Term</label>
+          <label data-i18n="label-term">Loan Term</label>
           <div class="toggle-group" id="termGroup">
-            <button class="toggle-btn" onclick="setTerm(15)">15 yr</button>
-            <button class="toggle-btn" onclick="setTerm(20)">20 yr</button>
-            <button class="toggle-btn" onclick="setTerm(25)">25 yr</button>
-            <button class="toggle-btn active" onclick="setTerm(30)">30 yr</button>
+            <button class="toggle-btn" onclick="setTerm(15)">15yr</button>
+            <button class="toggle-btn" onclick="setTerm(20)">20yr</button>
+            <button class="toggle-btn" onclick="setTerm(25)">25yr</button>
+            <button class="toggle-btn active" onclick="setTerm(30)">30yr</button>
           </div>
         </div>
       </div>
-
-      <!-- Monthly Costs -->
       <div class="section">
-        <div class="section-title">Monthly Costs</div>
-
+        <div class="section-title" data-i18n="section-costs">Monthly Costs</div>
         <div class="field">
-          <label>Property Tax</label>
-          <div class="toggle-group" style="margin-bottom:8px;">
-            <button class="toggle-btn active" id="taxBtnA" onclick="setTaxMode('A')">Annual Amount</button>
-            <button class="toggle-btn" id="taxBtnB" onclick="setTaxMode('B')">Rate x Value</button>
+          <label data-i18n="label-tax">Property Tax</label>
+          <div class="toggle-group" style="margin-bottom:8px">
+            <button class="toggle-btn active" id="taxBtnA" data-i18n="tax-mode-a" onclick="setTaxMode('A')">Annual Amount</button>
+            <button class="toggle-btn" id="taxBtnB" data-i18n="tax-mode-b" onclick="setTaxMode('B')">Rate x Value</button>
           </div>
-          <div id="taxFieldsA">
-            <input type="number" id="propertyTaxAnnual" placeholder="Annual tax ($) e.g. 6000" min="0" oninput="update()">
-          </div>
-          <div id="taxFieldsB" style="display:none;">
-            <input type="number" id="homeValue" placeholder="Home value ($)" min="0" oninput="update()" style="margin-bottom:6px;">
-            <input type="number" id="propertyTaxRate" placeholder="Tax rate (%) e.g. 1.2" min="0" max="10" step="0.01" oninput="update()">
+          <div id="taxFieldsA"><input type="number" id="propertyTaxAnnual" data-i18n-ph="ph-tax-annual" placeholder="Annual tax ($) e.g. 6000" min="0" oninput="update()"></div>
+          <div id="taxFieldsB" style="display:none">
+            <input type="number" id="homeValue" data-i18n-ph="ph-home-value" placeholder="Home value ($)" min="0" oninput="update()" style="margin-bottom:6px">
+            <input type="number" id="propertyTaxRate" data-i18n-ph="ph-tax-rate" placeholder="Tax rate (%) e.g. 1.2" min="0" max="10" step="0.01" oninput="update()">
           </div>
         </div>
-
-        <div class="field">
-          <label>Home Insurance (annual $)</label>
-          <input type="number" id="homeInsuranceAnnual" placeholder="e.g. 1800" min="0" oninput="update()">
-        </div>
-
+        <div class="field"><label data-i18n="label-insurance">Home Insurance (annual $)</label><input type="number" id="homeInsuranceAnnual" data-i18n-ph="ph-insurance" placeholder="e.g. 1800" min="0" oninput="update()"></div>
         <div class="field-row">
-          <div class="field">
-            <label>HOA (mo. $)</label>
-            <input type="number" id="hoaMonthly" placeholder="0" min="0" oninput="update()">
-          </div>
-          <div class="field">
-            <label>PMI (mo. $)</label>
-            <input type="number" id="pmiMonthly" placeholder="0" min="0" oninput="update()">
-          </div>
+          <div class="field"><label data-i18n="label-hoa">HOA (mo. $)</label><input type="number" id="hoaMonthly" placeholder="0" min="0" oninput="update()"></div>
+          <div class="field"><label data-i18n="label-pmi">PMI (mo. $)</label><input type="number" id="pmiMonthly" placeholder="0" min="0" oninput="update()"></div>
         </div>
+        <div class="field"><label data-i18n="label-other">Other (monthly $)</label><input type="number" id="otherMonthly" placeholder="0" min="0" oninput="update()"></div>
+      </div>
+    </div>
+  </div>
 
-        <div class="field">
-          <label>Other (monthly $)</label>
-          <input type="number" id="otherMonthly" placeholder="0" min="0" oninput="update()">
+  <div class="right-panel">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabBtnMortgage" data-i18n="tab-mortgage" onclick="switchTab('mortgage')">Mortgage</button>
+      <button class="tab-btn" id="tabBtnRefi" data-i18n="tab-refi" onclick="switchTab('refi')">Refinance</button>
+    </div>
+    <div id="mortgageTab">
+      <div id="output">
+        <div class="empty-state"><div class="empty-icon">&#127968;</div><div class="empty-text" data-i18n="empty-base">Enter your loan balance and interest rate to see projections.</div><div class="empty-hint" data-i18n="empty-base-hint">All costs are optional.</div></div>
+      </div>
+    </div>
+    <div id="refiTab" style="display:none">
+      <div class="refi-inputs-panel">
+        <div class="section-title" data-i18n="section-refi-params">Refinance Parameters</div>
+        <div class="refi-grid">
+          <div class="field" style="grid-column:1/-1">
+            <label data-i18n="label-refi-start">Refinance Start</label>
+            <input type="range" id="refiMonthSlider" min="1" max="360" value="12" oninput="updateRefiSliderLabel();updateRefi()">
+            <div class="field-hint" id="refiMonthLabel">Month 12</div>
+          </div>
+          <div class="field">
+            <label data-i18n="label-new-apr">New APR (%)</label>
+            <input type="number" id="newApr" placeholder="e.g. 5.5" min="0" max="30" step="0.05" oninput="document.getElementById('newAprSlider').value=this.value||0;updateRefi()">
+            <input type="range" id="newAprSlider" min="0" max="15" step="0.05" value="5.5" oninput="document.getElementById('newApr').value=parseFloat(this.value).toFixed(2);updateRefi()">
+          </div>
+          <div class="field">
+            <label data-i18n="label-new-term">New Term</label>
+            <div class="toggle-group" id="refiTermGroup">
+              <button class="toggle-btn" onclick="setRefiTerm(15)">15yr</button>
+              <button class="toggle-btn" onclick="setRefiTerm(20)">20yr</button>
+              <button class="toggle-btn" onclick="setRefiTerm(25)">25yr</button>
+              <button class="toggle-btn active" onclick="setRefiTerm(30)">30yr</button>
+            </div>
+          </div>
+          <div class="field"><label data-i18n="label-closing-cost">Closing Cost (cash $)</label><input type="number" id="closingCost" placeholder="0" min="0" oninput="updateRefi()"></div>
+          <div class="field">
+            <label data-i18n="label-horizon">Analysis Horizon</label>
+            <select id="horizon" onchange="updateRefi()">
+              <option value="36" data-i18n="horizon-3y">3 Years</option>
+              <option value="60" data-i18n="horizon-5y">5 Years</option>
+              <option value="120" selected data-i18n="horizon-10y">10 Years</option>
+              <option value="9999" data-i18n="horizon-payoff">To Payoff</option>
+            </select>
+          </div>
         </div>
       </div>
-
-    </div><!-- /panelContent -->
-  </div><!-- /left-panel -->
-
-  <!-- Right: Output Panel -->
-  <div class="right-panel">
-    <div id="output">
-      <div class="empty-state">
-        <div class="empty-icon">&#127968;</div>
-        <div class="empty-text">Enter your loan balance and interest rate to see projections.</div>
-        <div class="empty-hint">All costs are optional. Start with just Balance + Rate.</div>
+      <div id="refiOutput">
+        <div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-text" data-i18n="empty-refi-no-base">Enter base loan details first, then set refinance parameters above.</div></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// =============================================================
-// Config
-// =============================================================
-const COLORS = {
-  principal:  '#3b82f6',
-  interest:   '#f43f5e',
-  tax:        '#f59e0b',
-  insurance:  '#10b981',
-  hoa:        '#8b5cf6',
-  pmi:        '#f97316',
-  other:      '#94a3b8',
+// ── Translations ──────────────────────────────────────────────
+const TR = {
+  en: {
+    'app-title':'Mortgage Visualizer','light-mode':'Light Mode','dark-mode':'Dark Mode','lang-toggle':'中文',
+    'params':'Parameters','section-loan':'Loan','label-start-month':'Start Month','ph-start-month':'YYYY-MM e.g. 2025-03',
+    'label-loan-balance':'Loan Balance ($)','ph-loan-balance':'e.g. 450000','label-apr':'Annual Interest Rate (%)','hint-apr':'Per year (APR)',
+    'label-term':'Loan Term','section-costs':'Monthly Costs','label-tax':'Property Tax','tax-mode-a':'Annual Amount','tax-mode-b':'Rate x Value',
+    'ph-tax-annual':'Annual tax ($) e.g. 6000','ph-home-value':'Home value ($)','ph-tax-rate':'Tax rate (%) e.g. 1.2',
+    'label-insurance':'Home Insurance (annual $)','ph-insurance':'e.g. 1800','label-hoa':'HOA (mo. $)','label-pmi':'PMI (mo. $)','label-other':'Other (monthly $)',
+    'tab-mortgage':'Mortgage','tab-refi':'Refinance',
+    'section-refi-params':'Refinance Parameters','label-refi-start':'Refinance Start','label-new-apr':'New APR (%)','label-new-term':'New Term',
+    'label-closing-cost':'Closing Cost (cash $)','label-horizon':'Analysis Horizon','horizon-3y':'3 Years','horizon-5y':'5 Years','horizon-10y':'10 Years','horizon-payoff':'To Payoff',
+    'card-pi':'Monthly P&I','card-pi-sub':'principal + interest','card-tax':'Monthly Tax','card-tax-sub':'property tax',
+    'card-ins':'Monthly Ins.','card-ins-sub':'home insurance','card-extra':'HOA/PMI/Other','card-extra-sub':'monthly extras',
+    'card-total':'Monthly Total','card-total-sub':'all-in payment','card-interest':'Total Interest','card-interest-sub':'over loan life','card-payoff':'Payoff Date','card-payoff-sub':'final payment',
+    'card-delta':'Monthly Change','card-delta-sub':'at refi start','card-new-pi':'New Monthly P&I','card-new-pi-sub':'principal + interest',
+    'card-int-saved':'Interest Saved','card-int-saved-sub':'over horizon','card-net-savings':'Net Savings','card-breakeven':'Break-even',
+    'card-breakeven-sub':'months to recover cost','card-breakeven-sub-free':'no closing cost','immediate':'Immediate','none':'None','mo':'mo',
+    'after-closing':'after {cost} closing cost',
+    'chart-a-title':'Monthly Outflow — Stacked','chart-b-title':'Principal vs Interest (avg/yr)','chart-c-title':'Remaining Balance',
+    'chart-overlay-title':'Baseline vs Refinance — Overlay','yearly':'Yearly','monthly':'Monthly',
+    'col-period':'Period','col-principal':'Principal','col-interest':'Interest','col-balance':'Balance',
+    'col-tax':'Tax','col-insurance':'Insurance','col-hoa':'HOA','col-pmi':'PMI','col-other':'Other','col-total':'Total',
+    'by-year':'By Year','by-month':'By Month','export-csv':'Export CSV',
+    'empty-base':'Enter your loan balance and interest rate to see projections.','empty-base-hint':'All costs are optional.',
+    'empty-refi-no-base':'Enter base loan details first, then set refinance parameters above.','empty-refi-no-apr':'Enter a new APR to see refinance projections.',
+    'legend-baseline':'Baseline','legend-refi':'Refinanced (lighter)','tt-total':'Total','tt-delta':'Delta','tt-baseline':'Baseline','tt-refi':'Refinanced',
+    'refi-marker':'Refi','month-from-start':'Month {n} from start',
+    'seg-principal':'Principal','seg-interest':'Interest','seg-tax':'Property Tax','seg-insurance':'Insurance','seg-hoa':'HOA','seg-pmi':'PMI','seg-other':'Other',
+    'zoom-show':'Show','zoom-mo':'mo','zoom-pan':'← Pan →',
+  },
+  zh: {
+    'app-title':'房贷可视化','light-mode':'浅色模式','dark-mode':'深色模式','lang-toggle':'English',
+    'params':'参数设置','section-loan':'贷款','label-start-month':'起始年月','ph-start-month':'格式：YYYY-MM 如 2025-03',
+    'label-loan-balance':'贷款余额（$）','ph-loan-balance':'如 450000','label-apr':'年利率（APR）','hint-apr':'每年利率',
+    'label-term':'贷款期限','section-costs':'月度支出','label-tax':'房产税','tax-mode-a':'年税额','tax-mode-b':'税率×房价',
+    'ph-tax-annual':'年税额（$）如 6000','ph-home-value':'房产估值（$）','ph-tax-rate':'税率（%）如 1.2',
+    'label-insurance':'房屋保险（年费 $）','ph-insurance':'如 1800','label-hoa':'HOA（月 $）','label-pmi':'PMI（月 $）','label-other':'其他（月 $）',
+    'tab-mortgage':'房贷','tab-refi':'再融资',
+    'section-refi-params':'再融资参数','label-refi-start':'再融资起始月','label-new-apr':'新年利率（%）','label-new-term':'新贷款期限',
+    'label-closing-cost':'过户费用（现金 $）','label-horizon':'分析周期','horizon-3y':'3 年','horizon-5y':'5 年','horizon-10y':'10 年','horizon-payoff':'至还清',
+    'card-pi':'月供（本+息）','card-pi-sub':'本金 + 利息','card-tax':'月均税费','card-tax-sub':'房产税',
+    'card-ins':'月均保险','card-ins-sub':'房屋保险','card-extra':'HOA/PMI/其他','card-extra-sub':'月度杂费',
+    'card-total':'月度总支出','card-total-sub':'全部费用','card-interest':'总利息','card-interest-sub':'贷款全周期','card-payoff':'还清日期','card-payoff-sub':'最后一期',
+    'card-delta':'月供变化','card-delta-sub':'再融资首月','card-new-pi':'新月供（本+息）','card-new-pi-sub':'本金 + 利息',
+    'card-int-saved':'节省利息','card-int-saved-sub':'分析周期内','card-net-savings':'净节省','card-breakeven':'回本周期',
+    'card-breakeven-sub':'个月（回收过户费）','card-breakeven-sub-free':'无过户费用','immediate':'即时回本','none':'无法回本','mo':'个月',
+    'after-closing':'扣除 {cost} 过户费后',
+    'chart-a-title':'月度总支出 — 堆叠柱状图','chart-b-title':'本金 vs 利息（年均）','chart-c-title':'剩余本金',
+    'chart-overlay-title':'基准 vs 再融资 — 对比图','yearly':'按年','monthly':'按月',
+    'col-period':'周期','col-principal':'本金','col-interest':'利息','col-balance':'剩余本金',
+    'col-tax':'税费','col-insurance':'保险','col-hoa':'HOA','col-pmi':'PMI','col-other':'其他','col-total':'合计',
+    'by-year':'按年','by-month':'按月','export-csv':'导出 CSV',
+    'empty-base':'请输入贷款余额和利率以查看预测。','empty-base-hint':'其他费用为可选项。',
+    'empty-refi-no-base':'请先输入基础贷款信息，再设置上方再融资参数。','empty-refi-no-apr':'请输入新利率以查看再融资预测。',
+    'legend-baseline':'基准贷款','legend-refi':'再融资（浅色）','tt-total':'合计','tt-delta':'差额','tt-baseline':'基准','tt-refi':'再融资',
+    'refi-marker':'再融','month-from-start':'起始后第 {n} 个月',
+    'seg-principal':'本金','seg-interest':'利息','seg-tax':'房产税','seg-insurance':'保险','seg-hoa':'HOA','seg-pmi':'PMI','seg-other':'其他',
+    'zoom-show':'显示','zoom-mo':'月','zoom-pan':'← 滑动 →',
+  }
 };
-const SEGMENTS = ['principal','interest','tax','insurance','hoa','pmi','other'];
-const SEG_LABELS = {
-  principal: 'Principal', interest: 'Interest', tax: 'Property Tax',
-  insurance: 'Insurance', hoa: 'HOA', pmi: 'PMI', other: 'Other',
-};
+function t(k){ return (TR[state.lang]||TR.en)[k] || k; }
+function sl(seg){ return t('seg-'+seg); }
 
-// =============================================================
-// State
-// =============================================================
-let state = {
-  startMonth: '', loanBalance: '', interestRate: '', termYears: 30,
-  taxMode: 'A', propertyTaxAnnual: '', homeValue: '', propertyTaxRate: '',
-  homeInsuranceAnnual: '', hoaMonthly: '', pmiMonthly: '', otherMonthly: '',
-  viewMode: 'yearly', theme: 'dark',
-};
+// ── Colors ────────────────────────────────────────────────────
+const COLORS={principal:'#3b82f6',interest:'#f43f5e',tax:'#f59e0b',insurance:'#10b981',hoa:'#8b5cf6',pmi:'#f97316',other:'#94a3b8'};
+const COLORS_REFI={principal:'#93c5fd',interest:'#fca5a5',tax:'#fde68a',insurance:'#6ee7b7',hoa:'#c4b5fd',pmi:'#fdba74',other:'#e2e8f0'};
+const SEGMENTS=['principal','interest','tax','insurance','hoa','pmi','other'];
 
-// =============================================================
-// Init
-// =============================================================
-function init() {
-  const now = new Date();
-  const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  document.getElementById('startMonth').value = curMonth;
-  state.startMonth = curMonth;
+// ── State ─────────────────────────────────────────────────────
+let state={startMonth:'',loanBalance:'',interestRate:'',termYears:30,taxMode:'A',propertyTaxAnnual:'',homeValue:'',propertyTaxRate:'',homeInsuranceAnnual:'',hoaMonthly:'',pmiMonthly:'',otherMonthly:'',viewMode:'yearly',theme:'dark',chartAMode:'yearly',lang:'en'};
+let refiState={effectiveMonthIdx:11,newApr:'',newTermYears:30,closingCost:0,horizonMonths:120,chartMode:'yearly'};
+let chartAView={barWidthPx:20,scrollOffsetPx:0};
+let overlayView={barWidthPx:20,scrollOffsetPx:0};
 
-  try {
-    const saved = JSON.parse(localStorage.getItem('mvis_state') || 'null');
-    if (saved) {
-      Object.assign(state, saved);
-      restoreInputs();
-    }
-  } catch(e) {}
-
-  document.documentElement.setAttribute('data-theme', state.theme);
-  updateThemeBtn();
-  setTerm(state.termYears, false);
-  setTaxMode(state.taxMode, false);
-
-  if (state.loanBalance && state.interestRate) update();
+// ── Init ──────────────────────────────────────────────────────
+function init(){
+  const now=new Date(),cur=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('startMonth').value=cur; state.startMonth=cur;
+  try{const s=JSON.parse(localStorage.getItem('mvis3')||'null');if(s){Object.assign(state,s);restoreInputs();}}catch(e){}
+  document.documentElement.setAttribute('data-theme',state.theme);
+  setTerm(state.termYears,false); setTaxMode(state.taxMode,false);
+  applyTranslations();
+  if(state.loanBalance&&state.interestRate) update();
+}
+function restoreInputs(){
+  ['startMonth','loanBalance','interestRate','propertyTaxAnnual','homeValue','propertyTaxRate','homeInsuranceAnnual','hoaMonthly','pmiMonthly','otherMonthly'].forEach(id=>{if(state[id])document.getElementById(id).value=state[id];});
+  if(state.interestRate) document.getElementById('rateSlider').value=parseFloat(state.interestRate)||6.5;
 }
 
-function restoreInputs() {
-  const ids = ['startMonth','loanBalance','interestRate','propertyTaxAnnual',
-               'homeValue','propertyTaxRate','homeInsuranceAnnual','hoaMonthly','pmiMonthly','otherMonthly'];
-  ids.forEach(id => { if (state[id]) document.getElementById(id).value = state[id]; });
-  if (state.interestRate) document.getElementById('rateSlider').value = parseFloat(state.interestRate) || 6.5;
+// ── Translations apply ────────────────────────────────────────
+function applyTranslations(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.getAttribute('data-i18n')));
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>el.placeholder=t(el.getAttribute('data-i18n-ph')));
+  // Select options
+  document.querySelectorAll('[data-i18n]').forEach(el=>{if(el.tagName==='OPTION')el.textContent=t(el.getAttribute('data-i18n'));});
+  document.getElementById('themeBtn').textContent=t(state.theme==='dark'?'light-mode':'dark-mode');
+  document.getElementById('langBtn').textContent=t('lang-toggle');
+  document.getElementById('tabBtnMortgage').textContent=t('tab-mortgage');
+  document.getElementById('tabBtnRefi').textContent=t('tab-refi');
+  updateRefiSliderLabel();
 }
 
-// =============================================================
-// UI helpers
-// =============================================================
-function toggleTheme() {
-  state.theme = state.theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', state.theme);
-  updateThemeBtn();
-  saveState();
-  if (window._lastData) renderCharts(window._lastData);
+// ── UI helpers ────────────────────────────────────────────────
+function toggleTheme(){state.theme=state.theme==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',state.theme);applyTranslations();saveState();if(window._ld)renderCharts(window._ld);if(window._lrd)renderOverlayChart(window._lrd);}
+function toggleLang(){state.lang=state.lang==='en'?'zh':'en';saveState();applyTranslations();if(window._ld)_doUpdate();if(window._lrd&&document.getElementById('refiTab').style.display!=='none')_doUpdateRefi();}
+function switchTab(tab){
+  document.getElementById('mortgageTab').style.display=tab==='mortgage'?'':'none';
+  document.getElementById('refiTab').style.display=tab==='refi'?'':'none';
+  document.getElementById('tabBtnMortgage').classList.toggle('active',tab==='mortgage');
+  document.getElementById('tabBtnRefi').classList.toggle('active',tab==='refi');
+  if(tab==='refi'){updateRefiSliderBounds();updateRefi();}
 }
-function updateThemeBtn() {
-  document.getElementById('themeBtn').textContent = state.theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+function togglePanel(){const c=document.getElementById('panelContent'),a=document.getElementById('panelArrow');c.classList.toggle('open');a.innerHTML=c.classList.contains('open')?'&#9660;':'&#9654;';}
+function setTerm(yr,doUpdate=true){state.termYears=yr;document.querySelectorAll('#termGroup .toggle-btn').forEach((b,i)=>b.classList.toggle('active',[15,20,25,30][i]===yr));if(doUpdate)update();}
+function setTaxMode(mode,doUpdate=true){state.taxMode=mode;document.getElementById('taxBtnA').classList.toggle('active',mode==='A');document.getElementById('taxBtnB').classList.toggle('active',mode==='B');document.getElementById('taxFieldsA').style.display=mode==='A'?'':'none';document.getElementById('taxFieldsB').style.display=mode==='B'?'':'none';if(doUpdate)update();}
+function setRefiTerm(yr){refiState.newTermYears=yr;document.querySelectorAll('#refiTermGroup .toggle-btn').forEach((b,i)=>b.classList.toggle('active',[15,20,25,30][i]===yr));updateRefi();}
+function setChartAMode(mode){
+  state.chartAMode=mode;saveState();
+  document.querySelectorAll('#chartAToggle .toggle-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&mode==='yearly')||(i===1&&mode==='monthly')));
+  const zb=document.getElementById('chartAZoomBar');if(zb)zb.style.display=mode==='monthly'?'':'none';
+  if(window._ld){if(mode==='yearly')drawChartAYearly(window._ld.yearly);else{chartAView.scrollOffsetPx=0;drawChartAMonthly(window._ld.schedule);}}
 }
-function togglePanel() {
-  const c = document.getElementById('panelContent');
-  const a = document.getElementById('panelArrow');
-  c.classList.toggle('open');
-  a.innerHTML = c.classList.contains('open') ? '&#9660;' : '&#9654;';
+function setOverlayMode(mode){
+  refiState.chartMode=mode;
+  document.querySelectorAll('#overlayToggle .toggle-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&mode==='yearly')||(i===1&&mode==='monthly')));
+  const zb=document.getElementById('overlayZoomBar');if(zb)zb.style.display=mode==='monthly'?'':'none';
+  if(window._lrd){if(mode==='monthly'){const effIdx=window._lrd.effIdx||0;const bw=overlayView.barWidthPx;const ocv=document.getElementById('chartOverlay');const ocw=Math.max(100,(ocv?.getBoundingClientRect().width||400)-80);overlayView.scrollOffsetPx=Math.max(0,effIdx*bw-ocw/3);}renderOverlayChart(window._lrd);}
 }
-function setTerm(yr, doUpdate=true) {
-  state.termYears = yr;
-  const btns = document.querySelectorAll('#termGroup .toggle-btn');
-  [15,20,25,30].forEach((v,i) => btns[i].classList.toggle('active', v===yr));
-  if (doUpdate) update();
-}
-function setTaxMode(mode, doUpdate=true) {
-  state.taxMode = mode;
-  document.getElementById('taxBtnA').classList.toggle('active', mode==='A');
-  document.getElementById('taxBtnB').classList.toggle('active', mode==='B');
-  document.getElementById('taxFieldsA').style.display = mode==='A' ? '' : 'none';
-  document.getElementById('taxFieldsB').style.display = mode==='B' ? '' : 'none';
-  if (doUpdate) update();
-}
-function readState() {
-  const ids = ['startMonth','loanBalance','interestRate','propertyTaxAnnual',
-               'homeValue','propertyTaxRate','homeInsuranceAnnual','hoaMonthly','pmiMonthly','otherMonthly'];
-  ids.forEach(id => { state[id] = document.getElementById(id).value; });
-}
-function saveState() { try { localStorage.setItem('mvis_state', JSON.stringify(state)); } catch(e){} }
+function readState(){['startMonth','loanBalance','interestRate','propertyTaxAnnual','homeValue','propertyTaxRate','homeInsuranceAnnual','hoaMonthly','pmiMonthly','otherMonthly'].forEach(id=>state[id]=document.getElementById(id).value);}
+function readRefiState(){refiState.newApr=document.getElementById('newApr')?.value||'';refiState.closingCost=parseFloat(document.getElementById('closingCost')?.value)||0;refiState.horizonMonths=parseInt(document.getElementById('horizon')?.value)||120;}
+function saveState(){try{localStorage.setItem('mvis3',JSON.stringify(state));}catch(e){}}
 
-// =============================================================
-// Computation
-// =============================================================
-function computeSchedule() {
-  const P   = parseFloat(state.loanBalance)   || 0;
-  const APR = parseFloat(state.interestRate)  || 0;
-  if (P <= 0) return null;
+// ── Canvas hover / touch ──────────────────────────────────────
+function setHover(cv,fn){if(cv._mmH)cv.removeEventListener('mousemove',cv._mmH);if(cv._mlH)cv.removeEventListener('mouseleave',cv._mlH);cv._mmH=fn;cv._mlH=hideTooltip;cv.addEventListener('mousemove',cv._mmH);cv.addEventListener('mouseleave',cv._mlH);}
+function setTouch(cv,onPan){if(cv._tsH)cv.removeEventListener('touchstart',cv._tsH);if(cv._tmH)cv.removeEventListener('touchmove',cv._tmH);let sx=null;cv._tsH=e=>{sx=e.touches[0].clientX;};cv._tmH=e=>{if(sx===null)return;const dx=e.touches[0].clientX-sx;if(Math.abs(dx)>4){onPan(dx);sx=e.touches[0].clientX;}};cv.addEventListener('touchstart',cv._tsH,{passive:true});cv.addEventListener('touchmove',cv._tmH,{passive:true});}
+function setPanWheel(cv,getScroll,setScroll,redraw){
+  if(cv._whH)cv.removeEventListener('wheel',cv._whH);
+  cv._whH=e=>{e.preventDefault();const d=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*1.5;setScroll(getScroll()+d);redraw();};
+  cv.addEventListener('wheel',cv._whH,{passive:false});
+  if(cv._mdH)cv.removeEventListener('mousedown',cv._mdH);
+  cv._mdH=e=>{cv.style.cursor='grabbing';let px=e.clientX;const onM=ev=>{const dx=ev.clientX-px;px=ev.clientX;setScroll(getScroll()-dx);redraw();};const onU=()=>{cv.style.cursor='grab';window.removeEventListener('mousemove',onM);window.removeEventListener('mouseup',onU);};window.addEventListener('mousemove',onM);window.addEventListener('mouseup',onU);};
+  cv.addEventListener('mousedown',cv._mdH);
+  cv.style.cursor='grab';
+}
 
-  const n = state.termYears * 12;
-  const r = APR / 100 / 12;
-
-  let paymentPI;
-  if (r === 0) {
-    paymentPI = P / n;
-  } else {
-    const pow = Math.pow(1+r, n);
-    paymentPI = P * r * pow / (pow - 1);
+// ── Computation ───────────────────────────────────────────────
+function computeSchedule(){
+  const P=parseFloat(state.loanBalance)||0,APR=parseFloat(state.interestRate)||0;
+  if(P<=0)return null;
+  const n=state.termYears*12,r=APR/100/12;
+  let pPI;if(r===0)pPI=P/n;else{const pw=Math.pow(1+r,n);pPI=P*r*pw/(pw-1);}
+  let taxMo;if(state.taxMode==='A')taxMo=(parseFloat(state.propertyTaxAnnual)||0)/12;else taxMo=(parseFloat(state.homeValue)||0)*(parseFloat(state.propertyTaxRate)||0)/100/12;
+  const insMo=(parseFloat(state.homeInsuranceAnnual)||0)/12,hoaMo=parseFloat(state.hoaMonthly)||0,pmiMo=parseFloat(state.pmiMonthly)||0,othMo=parseFloat(state.otherMonthly)||0;
+  const ss=state.startMonth||(()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`})();
+  const[sy,sm]=ss.split('-').map(Number);
+  const schedule=[];let bal=P,totInt=0;
+  for(let i=0;i<n;i++){
+    const mo=sm-1+i,yr=sy+Math.floor(mo/12),mn=(mo%12)+1;
+    const interest=bal*r;let principal=pPI-interest;if(principal>bal)principal=bal;bal=Math.max(bal-principal,0);totInt+=interest;
+    schedule.push({month:`${yr}-${String(mn).padStart(2,'0')}`,principal,interest,balance:bal,tax:taxMo,insurance:insMo,hoa:hoaMo,pmi:pmiMo,other:othMo,total:principal+interest+taxMo+insMo+hoaMo+pmiMo+othMo});
+    if(bal<0.01)break;
   }
-
-  let taxMo;
-  if (state.taxMode === 'A') {
-    taxMo = (parseFloat(state.propertyTaxAnnual) || 0) / 12;
-  } else {
-    taxMo = (parseFloat(state.homeValue) || 0) * (parseFloat(state.propertyTaxRate) || 0) / 100 / 12;
+  return{schedule,paymentPI:pPI,taxMo,insMo,hoaMo,pmiMo,othMo,totalInterest:totInt};
+}
+function aggYearly(schedule){
+  const out=[];
+  for(let y=0;y<Math.ceil(schedule.length/12);y++){
+    const ms=schedule.slice(y*12,(y+1)*12),sum=k=>ms.reduce((a,m)=>a+m[k],0);
+    const f=ms[0],l=ms[ms.length-1];
+    out.push({year:y+1,calYear:f.month.split('-')[0],monthRange:f.month+' ~ '+l.month,principal:sum('principal'),interest:sum('interest'),tax:sum('tax'),insurance:sum('insurance'),hoa:sum('hoa'),pmi:sum('pmi'),other:sum('other'),total:sum('total'),endBalance:l.balance,avgPrincipal:sum('principal')/ms.length,avgInterest:sum('interest')/ms.length});
   }
-  const insMo  = (parseFloat(state.homeInsuranceAnnual) || 0) / 12;
-  const hoaMo  =  parseFloat(state.hoaMonthly)  || 0;
-  const pmiMo  =  parseFloat(state.pmiMonthly)  || 0;
-  const othMo  =  parseFloat(state.otherMonthly)|| 0;
-
-  const startStr = state.startMonth || (() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  })();
-  const [sy, sm] = startStr.split('-').map(Number);
-
-  const schedule = [];
-  let balance = P, totalInterest = 0;
-
-  for (let i = 0; i < n; i++) {
-    const mo    = sm - 1 + i;
-    const year  = sy + Math.floor(mo / 12);
-    const month = (mo % 12) + 1;
-    const label = `${year}-${String(month).padStart(2,'0')}`;
-
-    const interest  = balance * r;
-    let   principal = paymentPI - interest;
-    if (principal > balance) principal = balance;
-    balance = Math.max(balance - principal, 0);
-    totalInterest += interest;
-
-    const total = principal + interest + taxMo + insMo + hoaMo + pmiMo + othMo;
-    schedule.push({ month: label, principal, interest, balance,
-                    tax: taxMo, insurance: insMo, hoa: hoaMo, pmi: pmiMo, other: othMo, total });
-    if (balance < 0.01) break;
-  }
-
-  return { schedule, paymentPI, taxMo, insMo, hoaMo, pmiMo, othMo, totalInterest };
+  return out;
 }
 
-function aggregateYearly(schedule) {
-  const yearly = [];
-  for (let y = 0; y < Math.ceil(schedule.length / 12); y++) {
-    const months = schedule.slice(y*12, (y+1)*12);
-    const sum = k => months.reduce((a, m) => a + m[k], 0);
-    const first = months[0], last = months[months.length-1];
-    yearly.push({
-      year:         y + 1,
-      calYear:      first.month.split('-')[0],
-      monthRange:   first.month + ' ~ ' + last.month,
-      principal:    sum('principal'),
-      interest:     sum('interest'),
-      tax:          sum('tax'),
-      insurance:    sum('insurance'),
-      hoa:          sum('hoa'),
-      pmi:          sum('pmi'),
-      other:        sum('other'),
-      total:        sum('total'),
-      endBalance:   last.balance,
-      avgPrincipal: sum('principal') / months.length,
-      avgInterest:  sum('interest')  / months.length,
-    });
-  }
-  return yearly;
-}
-
-// =============================================================
-// Main update
-// =============================================================
-let _debounce;
-function update() {
-  clearTimeout(_debounce);
-  _debounce = setTimeout(_doUpdate, 60);
-}
-
-function _doUpdate() {
-  readState();
-  saveState();
-
-  const result = computeSchedule();
-  if (!result) {
-    document.getElementById('output').innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">&#127968;</div>
-        <div class="empty-text">Enter your loan balance and interest rate to see projections.</div>
-        <div class="empty-hint">All costs are optional. Start with just Balance + Rate.</div>
-      </div>`;
-    return;
-  }
-
-  const { schedule, paymentPI, taxMo, insMo, hoaMo, pmiMo, othMo, totalInterest } = result;
-  const yearly = aggregateYearly(schedule);
-  const totalMo = paymentPI + taxMo + insMo + hoaMo + pmiMo + othMo;
-  const payoffDate = schedule[schedule.length-1].month;
-  window._lastData = { schedule, yearly };
-
-  document.getElementById('output').innerHTML = `
+// ── Main update ───────────────────────────────────────────────
+let _db;
+function update(){clearTimeout(_db);_db=setTimeout(_doUpdate,60);}
+function _doUpdate(){
+  readState();saveState();
+  const res=computeSchedule();
+  if(!res){document.getElementById('output').innerHTML=`<div class="empty-state"><div class="empty-icon">&#127968;</div><div class="empty-text">${t('empty-base')}</div><div class="empty-hint">${t('empty-base-hint')}</div></div>`;return;}
+  const{schedule,paymentPI,taxMo,insMo,hoaMo,pmiMo,othMo,totalInterest}=res;
+  const yearly=aggYearly(schedule),totalMo=paymentPI+taxMo+insMo+hoaMo+pmiMo+othMo;
+  window._ld={schedule,yearly};
+  const aMode=state.chartAMode||'yearly';
+  document.getElementById('output').innerHTML=`
     <div class="summary-grid" id="summaryGrid"></div>
-
     <div class="chart-card">
-      <div class="chart-title">Monthly Outflow by Year &mdash; Stacked</div>
-      <canvas id="chartA"></canvas>
+      <div class="chart-card-header">
+        <div class="chart-title">${t('chart-a-title')}</div>
+        <div class="toggle-group" id="chartAToggle" style="width:auto">
+          <button class="toggle-btn ${aMode==='yearly'?'active':''}" onclick="setChartAMode('yearly')">${t('yearly')}</button>
+          <button class="toggle-btn ${aMode==='monthly'?'active':''}" onclick="setChartAMode('monthly')">${t('monthly')}</button>
+        </div>
+      </div>
+      <div class="chart-scroll-wrap"><canvas id="chartA"></canvas></div>
+      <div id="chartAZoomBar" style="${aMode==='monthly'?'':'display:none'}">
+        <div class="zoom-bar">
+          <div class="zoom-row"><span class="zoom-label" id="chartAZoomLabel">${t('zoom-show')}</span><input type="range" id="chartAZoom" min="6" max="80" step="2" value="${chartAView.barWidthPx}" oninput="onChartAZoom(+this.value)"></div>
+        </div>
+      </div>
       <div class="legend" id="legendA"></div>
     </div>
-
     <div class="chart-grid">
-      <div class="chart-card">
-        <div class="chart-title">Principal vs Interest (monthly avg / year)</div>
-        <canvas id="chartB"></canvas>
-        <div class="legend" id="legendB"></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Remaining Balance</div>
-        <canvas id="chartC"></canvas>
-      </div>
+      <div class="chart-card"><div class="chart-title">${t('chart-b-title')}</div><canvas id="chartB"></canvas><div class="legend" id="legendB"></div></div>
+      <div class="chart-card"><div class="chart-title">${t('chart-c-title')}</div><canvas id="chartC"></canvas></div>
     </div>
-
     <div class="table-controls">
-      <div class="toggle-group" style="width:auto;">
-        <button class="toggle-btn ${state.viewMode==='yearly'?'active':''}" onclick="setViewMode('yearly')">By Year</button>
-        <button class="toggle-btn ${state.viewMode==='monthly'?'active':''}" onclick="setViewMode('monthly')">By Month</button>
+      <div class="toggle-group" style="width:auto">
+        <button class="toggle-btn ${state.viewMode==='yearly'?'active':''}" onclick="setViewMode('yearly')">${t('by-year')}</button>
+        <button class="toggle-btn ${state.viewMode==='monthly'?'active':''}" onclick="setViewMode('monthly')">${t('by-month')}</button>
       </div>
-      <button class="btn btn-outline" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-outline" onclick="exportCSV()">${t('export-csv')}</button>
     </div>
-    <div class="table-wrapper">
-      <table id="schedTable"></table>
-    </div>
-  `;
-
-  renderSummary({ paymentPI, taxMo, insMo, hoaMo, pmiMo, othMo, totalMo, totalInterest, payoffDate });
-  renderTable(schedule, yearly);
-
-  // Charts: use a retry loop so iOS Safari has enough time to lay out the DOM.
-  tryRenderCharts({ schedule, yearly }, 0);
+    <div class="table-wrapper"><table id="schedTable"></table></div>`;
+  renderSummary({paymentPI,taxMo,insMo,hoaMo,pmiMo,othMo,totalMo,totalInterest,payoffDate:schedule[schedule.length-1].month});
+  renderTable(schedule,yearly);
+  tryRenderCharts({schedule,yearly},0);
+  updateRefiSliderBounds();
+  if(document.getElementById('refiTab').style.display!=='none')updateRefi();
 }
-
-function tryRenderCharts(data, attempt) {
-  var canvas = document.getElementById('chartA');
-  if (!canvas) return;
-  var w = canvas.getBoundingClientRect().width || canvas.offsetWidth
-          || (canvas.parentElement ? canvas.parentElement.clientWidth - 40 : 0);
-  if (!w && attempt < 15) {
-    setTimeout(function() { tryRenderCharts(data, attempt + 1); }, 80);
-    return;
-  }
+function tryRenderCharts(data,attempt){
+  const cv=document.getElementById('chartA');if(!cv)return;
+  const w=cv.getBoundingClientRect().width||cv.offsetWidth||(cv.parentElement?cv.parentElement.clientWidth-40:0);
+  if(!w&&attempt<15){setTimeout(()=>tryRenderCharts(data,attempt+1),80);return;}
   renderCharts(data);
 }
 
-// =============================================================
-// Summary
-// =============================================================
-const fmtC  = v => v.toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtC0 = v => v.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
-
-function renderSummary({ paymentPI, taxMo, insMo, hoaMo, pmiMo, othMo, totalMo, totalInterest, payoffDate }) {
-  const othTotal = hoaMo + pmiMo + othMo;
-  const cards = [
-    { label:'Monthly P&I',     value: fmtC(paymentPI), sub:'principal + interest' },
-    { label:'Monthly Tax',     value: fmtC(taxMo),     sub:'property tax' },
-    { label:'Monthly Ins.',    value: fmtC(insMo),      sub:'home insurance' },
-    { label:'HOA / PMI / Other', value: fmtC(othTotal), sub:'monthly extras' },
-    { label:'Monthly Total',   value: fmtC(totalMo),   sub:'all-in payment', highlight: true },
-    { label:'Total Interest',  value: fmtC0(totalInterest), sub:'over loan life' },
-    { label:'Payoff Date',     value: payoffDate,       sub:'final payment month' },
+// ── Summary ───────────────────────────────────────────────────
+const fmtC=v=>v.toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtC0=v=>v.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+function renderSummary({paymentPI,taxMo,insMo,hoaMo,pmiMo,othMo,totalMo,totalInterest,payoffDate}){
+  const cards=[
+    {lk:'card-pi',sk:'card-pi-sub',val:fmtC(paymentPI)},
+    {lk:'card-tax',sk:'card-tax-sub',val:fmtC(taxMo)},
+    {lk:'card-ins',sk:'card-ins-sub',val:fmtC(insMo)},
+    {lk:'card-extra',sk:'card-extra-sub',val:fmtC(hoaMo+pmiMo+othMo)},
+    {lk:'card-total',sk:'card-total-sub',val:fmtC(totalMo),hl:true},
+    {lk:'card-interest',sk:'card-interest-sub',val:fmtC0(totalInterest)},
+    {lk:'card-payoff',sk:'card-payoff-sub',val:payoffDate},
   ];
-  document.getElementById('summaryGrid').innerHTML = cards.map(c => `
-    <div class="card">
-      <div class="card-label">${c.label}</div>
-      <div class="card-value${c.highlight?' highlight':''}">${c.value}</div>
-      <div class="card-sub">${c.sub}</div>
-    </div>`).join('');
+  document.getElementById('summaryGrid').innerHTML=cards.map(c=>`<div class="card"><div class="card-label">${t(c.lk)}</div><div class="card-value${c.hl?' highlight':''}">${c.val}</div><div class="card-sub">${t(c.sk)}</div></div>`).join('');
 }
 
-// =============================================================
-// Charts
-// =============================================================
-function tc() {
-  const dark = document.documentElement.getAttribute('data-theme') !== 'light';
-  return {
-    grid:  dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-    axis:  dark ? '#475569' : '#cbd5e1',
-    text:  dark ? '#94a3b8' : '#64748b',
-    bg:    dark ? '#1e293b' : '#ffffff',
-  };
+// ── Canvas utils ──────────────────────────────────────────────
+function tc(){const dark=document.documentElement.getAttribute('data-theme')!=='light';return{grid:dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)',axis:dark?'#475569':'#cbd5e1',text:dark?'#94a3b8':'#64748b'};}
+function setupCV(id){
+  const cv=document.getElementById(id);if(!cv)return null;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  let w=cv.getBoundingClientRect().width||cv.offsetWidth;if(!w&&cv.parentElement)w=cv.parentElement.clientWidth-40;if(!w)w=Math.max(window.innerWidth-80,200);
+  let h=cv.getBoundingClientRect().height||cv.offsetHeight;if(!h)h=parseInt(getComputedStyle(cv).height)||220;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);return{ctx,w,h,cv};
 }
-
-function setupCanvas(id) {
-  const canvas = document.getElementById(id);
-  if (!canvas) return null;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-  // getBoundingClientRect may return 0 right after DOM insertion on iOS —
-  // fall through several fallbacks to get a real pixel width.
-  let w = canvas.getBoundingClientRect().width || canvas.offsetWidth;
-  if (!w && canvas.parentElement) w = canvas.parentElement.clientWidth - 40;
-  if (!w) w = Math.max(window.innerWidth - 80, 200);
-
-  let h = canvas.getBoundingClientRect().height || canvas.offsetHeight;
-  if (!h) h = parseInt(getComputedStyle(canvas).height) || 220;
-
-  canvas.width  = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  return { ctx, w, h, canvas };
+function setupScrollCV(id,pixW,pixH){
+  const cv=document.getElementById(id);if(!cv)return null;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.style.width=pixW+'px';cv.style.height=pixH+'px';cv.width=Math.round(pixW*dpr);cv.height=Math.round(pixH*dpr);
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);return{ctx,w:pixW,h:pixH,cv};
 }
-
-function niceMax(val) {
-  if (!val || val <= 0) return 100;
-  const raw = val * 1.08;
-  const exp = Math.floor(Math.log10(raw));
-  const base = Math.pow(10, exp);
-  const f = raw / base;
-  const nice = f <= 1.5 ? 1.5 : f <= 2 ? 2 : f <= 3 ? 3 : f <= 5 ? 5 : 10;
-  return nice * base;
+function niceMax(v){if(!v||v<=0)return 100;const raw=v*1.12;const exp=Math.floor(Math.log10(raw));const step=Math.pow(10,exp-1);return Math.ceil(raw/step)*step;}
+function fmtY(v){if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';return'$'+Math.round(v);}
+function drawAxes(ctx,pad,w,h,yMax,ticks,c){
+  const ch=h-pad.t-pad.b;ctx.font='10px -apple-system,sans-serif';
+  for(let i=0;i<=ticks;i++){const val=(yMax/ticks)*i,y=pad.t+ch-(val/yMax)*ch;ctx.strokeStyle=c.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillStyle=c.text;ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(fmtY(val),pad.l-6,y);}
+  ctx.strokeStyle=c.axis;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();
 }
+function drawStackedBar(ctx,x,topY,ch,barW,yMax,data,palette){let by=topY+ch;SEGMENTS.forEach(seg=>{const v=data[seg]||0;if(v<=0)return;const bh=(v/yMax)*ch;by-=bh;ctx.fillStyle=palette[seg];ctx.fillRect(x,by,barW,bh);});}
+function drawPolyline(ctx,data,key,pad,cw,ch,yMax,n,color){ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();data.forEach((d,i)=>{const x=pad.l+i*cw/(n-1||1),y=pad.t+ch*(1-(d[key]||0)/yMax);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
 
-function fmtY(v) {
-  if (v >= 1e6) return '$'+(v/1e6).toFixed(1)+'M';
-  if (v >= 1e3) return '$'+(v/1e3).toFixed(0)+'K';
-  return '$'+Math.round(v);
+// ── Chart A Yearly ────────────────────────────────────────────
+function drawChartAYearly(yearly){
+  const cv=document.getElementById('chartA');if(cv){cv.style.width='';cv.style.height='';}
+  const c=setupCV('chartA');if(!c)return;
+  const{ctx,w,h,cv:canvas}=c,col=tc(),pad={t:16,r:16,b:52,l:60},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  ctx.clearRect(0,0,w,h);const yMax=niceMax(Math.max(...yearly.map(y=>y.total)));
+  drawAxes(ctx,pad,w,h,yMax,5,col);
+  const n=yearly.length,step=cw/n,barW=step*0.68,rects=[];
+  yearly.forEach((yd,i)=>{
+    const bx=pad.l+i*step+(step-barW)/2;drawStackedBar(ctx,bx,pad.t,ch,barW,yMax,yd,COLORS);
+    const show=n<=15||i===0||(i+1)%5===0||i===n-1;
+    if(show){ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';ctx.fillText(yd.calYear,bx+barW/2,h-pad.b+6);}
+    rects.push({x:bx,w:barW,topY:pad.t,botY:pad.t+ch,yd});
+  });
+  canvas._rects=rects;
+  setHover(canvas,e=>{const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;const hit=canvas._rects.find(b=>mx>=b.x&&mx<=b.x+b.w&&my>=b.topY&&my<=b.botY);if(hit)showTTBase(e.clientX,e.clientY,hit.yd,false);else hideTooltip();});
 }
-
-function drawAxes(ctx, pad, w, h, yMax, yTicks, colors) {
-  const cw = w - pad.l - pad.r;
-  const ch = h - pad.t - pad.b;
-
-  // Y grid + labels
-  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
-  for (let i = 0; i <= yTicks; i++) {
-    const val = (yMax / yTicks) * i;
-    const y   = pad.t + ch - (val / yMax) * ch;
-
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(pad.l, y);
-    ctx.lineTo(w - pad.r, y);
-    ctx.stroke();
-
-    ctx.fillStyle   = colors.text;
-    ctx.textAlign   = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(fmtY(val), pad.l - 6, y);
+// ── Chart A Monthly ───────────────────────────────────────────
+function drawChartAMonthly(schedule){
+  const cv=document.getElementById('chartA');if(cv){cv.style.width='';cv.style.height='';}
+  const c=setupCV('chartA');if(!c)return;
+  const{ctx,w,h,cv:canvas}=c,col=tc(),pad={t:16,r:20,b:52,l:60},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  const N=schedule.length,bw=Math.max(4,chartAView.barWidthPx);
+  const totalW=N*bw,maxScroll=Math.max(0,totalW-cw);
+  chartAView.scrollOffsetPx=Math.max(0,Math.min(chartAView.scrollOffsetPx,maxScroll));
+  const scroll=chartAView.scrollOffsetPx;
+  const startIdx=Math.max(0,Math.floor(scroll/bw));
+  const endIdx=Math.min(N-1,Math.ceil((scroll+cw)/bw));
+  const zl=document.getElementById('chartAZoomLabel');
+  if(zl)zl.textContent=`~${Math.round(cw/bw)} ${t('zoom-mo')}`;
+  ctx.clearRect(0,0,w,h);
+  const yMax=niceMax(Math.max(...schedule.map(m=>m.total)));
+  for(let i=0;i<=5;i++){const val=(yMax/5)*i,y=pad.t+ch-(val/yMax)*ch;ctx.strokeStyle=col.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillStyle=col.text;ctx.textAlign='right';ctx.textBaseline='middle';ctx.font='10px -apple-system,sans-serif';ctx.fillText(fmtY(val),pad.l-6,y);}
+  ctx.strokeStyle=col.axis;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();
+  const barW=Math.max(2,bw*0.72),rects=[];
+  ctx.save();ctx.beginPath();ctx.rect(pad.l,pad.t-2,cw,ch+46);ctx.clip();
+  for(let i=startIdx;i<=endIdx;i++){
+    const m=schedule[i],sx=pad.l+i*bw-scroll,bx=sx+(bw-barW)/2;
+    drawStackedBar(ctx,bx,pad.t,ch,barW,yMax,m,COLORS);
+    const labelStep=Math.max(1,Math.ceil(38/bw));
+    if(i%labelStep===0||i===N-1){ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';ctx.fillText(m.month,bx+barW/2,h-pad.b+4);}
+    rects.push({x:bx,w:barW,topY:pad.t,botY:pad.t+ch,yd:m});
   }
-
-  // Axes
-  ctx.strokeStyle = colors.axis;
-  ctx.lineWidth   = 1;
-  ctx.beginPath();
-  ctx.moveTo(pad.l, pad.t);
-  ctx.lineTo(pad.l, h - pad.b);
-  ctx.lineTo(w - pad.r, h - pad.b);
-  ctx.stroke();
+  ctx.restore();
+  canvas._rects=rects;
+  setHover(canvas,e=>{const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;const hit=canvas._rects.find(b=>mx>=b.x&&mx<=b.x+b.w&&my>=b.topY&&my<=b.botY);if(hit)showTTBase(e.clientX,e.clientY,hit.yd,true);else hideTooltip();});
+  setTouch(canvas,dx=>{chartAView.scrollOffsetPx=Math.max(0,Math.min(maxScroll,chartAView.scrollOffsetPx-dx));drawChartAMonthly(schedule);});
+  setPanWheel(canvas,()=>chartAView.scrollOffsetPx,(v)=>{chartAView.scrollOffsetPx=Math.max(0,Math.min(maxScroll,v));},()=>drawChartAMonthly(schedule));
+}
+// ── Charts B & C ─────────────────────────────────────────────
+function drawChartB(yearly){
+  const cv=document.getElementById('chartB');if(cv){cv.style.width='';cv.style.height='';}
+  const c=setupCV('chartB');if(!c)return;
+  const{ctx,w,h}=c,col=tc(),pad={t:16,r:16,b:36,l:60},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,n=yearly.length;
+  ctx.clearRect(0,0,w,h);const yMax=niceMax(Math.max(...yearly.map(y=>Math.max(y.avgPrincipal,y.avgInterest))));
+  drawAxes(ctx,pad,w,h,yMax,4,col);drawPolyline(ctx,yearly,'avgPrincipal',pad,cw,ch,yMax,n,COLORS.principal);drawPolyline(ctx,yearly,'avgInterest',pad,cw,ch,yMax,n,COLORS.interest);
+  ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';
+  yearly.forEach((y,i)=>{if(n<=10||i===0||(i+1)%5===0||i===n-1)ctx.fillText(y.calYear,pad.l+i*cw/(n-1||1),h-pad.b+6);});
+}
+function drawChartC(yearly){
+  const cv=document.getElementById('chartC');if(cv){cv.style.width='';cv.style.height='';}
+  const c=setupCV('chartC');if(!c)return;
+  const{ctx,w,h}=c,col=tc(),pad={t:16,r:16,b:36,l:60},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b,n=yearly.length;
+  ctx.clearRect(0,0,w,h);const yMax=niceMax(parseFloat(state.loanBalance)||1);
+  drawAxes(ctx,pad,w,h,yMax,4,col);
+  ctx.fillStyle=COLORS.principal+'22';ctx.beginPath();ctx.moveTo(pad.l,pad.t+ch);yearly.forEach((y,i)=>ctx.lineTo(pad.l+i*cw/(n-1||1),pad.t+ch*(1-y.endBalance/yMax)));ctx.lineTo(pad.l+(n-1)*cw/(n-1||1),pad.t+ch);ctx.closePath();ctx.fill();
+  drawPolyline(ctx,yearly,'endBalance',pad,cw,ch,yMax,n,COLORS.principal);
+  ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';
+  yearly.forEach((y,i)=>{if(n<=10||i===0||(i+1)%5===0||i===n-1)ctx.fillText(y.calYear,pad.l+i*cw/(n-1||1),h-pad.b+6);});
+}
+function renderCharts(data){
+  if((state.chartAMode||'yearly')==='yearly')drawChartAYearly(data.yearly);else drawChartAMonthly(data.schedule);
+  drawChartB(data.yearly);drawChartC(data.yearly);renderLegendsBase();
+}
+function renderLegendsBase(){
+  const la=document.getElementById('legendA');if(la)la.innerHTML=SEGMENTS.map(s=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[s]}"></div>${sl(s)}</div>`).join('');
+  const lb=document.getElementById('legendB');if(lb)lb.innerHTML=`<div class="legend-item"><div class="legend-dot" style="background:${COLORS.principal}"></div>${sl('principal')}</div><div class="legend-item"><div class="legend-dot" style="background:${COLORS.interest}"></div>${sl('interest')}</div>`;
 }
 
-function renderCharts(data) {
-  drawChartA(data.yearly);
-  drawChartB(data.yearly);
-  drawChartC(data.yearly);
-  renderLegends();
+// ── Tooltips ──────────────────────────────────────────────────
+function showTTBase(mx,my,yd,isMonthly){
+  document.getElementById('tt-title').textContent=isMonthly?yd.month:`${t('yearly')} ${yd.year} (${yd.monthRange})`;
+  let h='';SEGMENTS.forEach(s=>{const v=yd[s]||0;if(v<=0)return;h+=`<div class="tt-row"><span style="color:${COLORS[s]}">&#9632; ${sl(s)}</span><strong>${fmtC0(v)}</strong></div>`;});
+  h+=`<div class="tt-divider"></div><div class="tt-row"><span>${t('tt-total')}</span><strong>${fmtC0(yd.total)}</strong></div>`;
+  document.getElementById('tt-body').innerHTML=h;placeTooltip(mx,my);document.getElementById('tooltip').classList.add('visible');
+}
+function showTTOverlay(mx,my,label,bd,rd){
+  document.getElementById('tt-title').textContent=label;
+  let h='';
+  if(bd){h+=`<div class="tt-section">${t('tt-baseline')}</div>`;SEGMENTS.forEach(s=>{const v=bd[s]||0;if(v<=0)return;h+=`<div class="tt-row"><span style="color:${COLORS[s]}">&#9632; ${sl(s)}</span><strong>${fmtC0(v)}</strong></div>`;});h+=`<div class="tt-row"><span>${t('tt-total')}</span><strong>${fmtC0(bd.total)}</strong></div>`;}
+  if(rd){h+=`<div class="tt-section">${t('tt-refi')}</div>`;SEGMENTS.forEach(s=>{const v=rd[s]||0;if(v<=0)return;h+=`<div class="tt-row"><span style="color:${COLORS_REFI[s]}">&#9632; ${sl(s)}</span><strong>${fmtC0(v)}</strong></div>`;});h+=`<div class="tt-row"><span>${t('tt-total')}</span><strong>${fmtC0(rd.total)}</strong></div>`;}
+  if(bd&&rd){const d=rd.total-bd.total;h+=`<div class="tt-divider"></div><div class="tt-row"><span>${t('tt-delta')}</span><strong style="color:${d<0?'#10b981':'#f43f5e'}">${d>=0?'+':''}${fmtC0(d)}</strong></div>`;}
+  document.getElementById('tt-body').innerHTML=h;placeTooltip(mx,my);document.getElementById('tooltip').classList.add('visible');
+}
+function placeTooltip(mx,my){const tt=document.getElementById('tooltip'),tw=240,th=280,mg=14;let l=mx+mg,tp=my+mg;if(l+tw>window.innerWidth)l=mx-tw-mg;if(tp+th>window.innerHeight)tp=my-th-mg;tt.style.left=l+'px';tt.style.top=tp+'px';}
+function hideTooltip(){document.getElementById('tooltip').classList.remove('visible');}
+
+// ── Table ─────────────────────────────────────────────────────
+function setViewMode(mode){state.viewMode=mode;saveState();if(!window._ld)return;renderTable(window._ld.schedule,window._ld.yearly);document.querySelectorAll('.table-controls .toggle-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&mode==='yearly')||(i===1&&mode==='monthly')));}
+function renderTable(schedule,yearly){
+  const tbl=document.getElementById('schedTable');if(!tbl)return;
+  const cols=['col-period','col-principal','col-interest','col-balance','col-tax','col-insurance','col-hoa','col-pmi','col-other','col-total'];
+  let rows='';
+  if(state.viewMode==='yearly')yearly.forEach(y=>rows+=`<tr><td>${y.calYear}</td><td>${fmtC(y.principal)}</td><td>${fmtC(y.interest)}</td><td>${fmtC(y.endBalance)}</td><td>${fmtC(y.tax)}</td><td>${fmtC(y.insurance)}</td><td>${fmtC(y.hoa)}</td><td>${fmtC(y.pmi)}</td><td>${fmtC(y.other)}</td><td class="total-col">${fmtC(y.total)}</td></tr>`);
+  else schedule.forEach(m=>rows+=`<tr><td>${m.month}</td><td>${fmtC(m.principal)}</td><td>${fmtC(m.interest)}</td><td>${fmtC(m.balance)}</td><td>${fmtC(m.tax)}</td><td>${fmtC(m.insurance)}</td><td>${fmtC(m.hoa)}</td><td>${fmtC(m.pmi)}</td><td>${fmtC(m.other)}</td><td class="total-col">${fmtC(m.total)}</td></tr>`);
+  tbl.innerHTML=`<thead><tr>${cols.map(c=>`<th>${t(c)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody>`;
+}
+function exportCSV(){if(!window._ld)return;const s=window._ld.schedule;const csv=['Month,Principal,Interest,Balance,Tax,Insurance,HOA,PMI,Other,Total',...s.map(m=>[m.month,m.principal,m.interest,m.balance,m.tax,m.insurance,m.hoa,m.pmi,m.other,m.total].map(v=>typeof v==='number'?v.toFixed(2):v).join(','))].join('\n');const b=new Blob([csv],{type:'text/csv'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='mortgage_schedule.csv';a.click();URL.revokeObjectURL(u);}
+
+// ── Refi slider ───────────────────────────────────────────────
+function updateRefiSliderBounds(){const sl=document.getElementById('refiMonthSlider');if(!sl)return;const n=window._ld?window._ld.schedule.length:360;sl.max=n;if(parseInt(sl.value)>n)sl.value=Math.min(12,n);updateRefiSliderLabel();}
+function updateRefiSliderLabel(){
+  const sl=document.getElementById('refiMonthSlider'),lb=document.getElementById('refiMonthLabel');if(!sl||!lb)return;
+  const mn=parseInt(sl.value),idx=mn-1;refiState.effectiveMonthIdx=idx;
+  const lbl=t('month-from-start').replace('{n}',mn);
+  lb.textContent=window._ld&&window._ld.schedule[idx]?`${lbl} · ${window._ld.schedule[idx].month}`:lbl;
 }
 
-// ---- Chart A: Stacked Bar ----
-function drawChartA(yearly) {
-  const c = setupCanvas('chartA');
-  if (!c) return;
-  const { ctx, w, h, canvas } = c;
-  const colors = tc();
-  const pad = { t:16, r:16, b:52, l:60 };
-  const cw = w - pad.l - pad.r;
-  const ch = h - pad.t - pad.b;
-
-  ctx.clearRect(0, 0, w, h);
-
-  const maxTot = Math.max(...yearly.map(y => y.total));
-  const yMax   = niceMax(maxTot);
-
-  drawAxes(ctx, pad, w, h, yMax, 5, colors);
-
-  const n    = yearly.length;
-  const step = cw / n;
-  const barW = step * 0.68;
-
-  const barRects = [];
-
-  yearly.forEach((yd, i) => {
-    const bx = pad.l + i * step + (step - barW) / 2;
-    let   by = pad.t + ch;
-
-    SEGMENTS.forEach(seg => {
-      const val = yd[seg] || 0;
-      if (val <= 0) return;
-      const bh = (val / yMax) * ch;
-      by -= bh;
-      ctx.fillStyle = COLORS[seg];
-      ctx.fillRect(bx, by, barW, bh);
-    });
-
-    // X label
-    const show = n <= 15 || i === 0 || (i+1) % 5 === 0 || i === n-1;
-    if (show) {
-      ctx.fillStyle    = colors.text;
-      ctx.textAlign    = 'center';
-      ctx.textBaseline = 'top';
-      ctx.font = '10px -apple-system, sans-serif';
-      ctx.fillText(yd.calYear, bx + barW/2, h - pad.b + 6);
-    }
-
-    barRects.push({ x: bx, w: barW, topY: pad.t, botY: pad.t+ch, yd });
-  });
-
-  canvas._bars = barRects;
-  canvas._pad  = pad;
-
-  if (!canvas._hover) {
-    canvas._hover = true;
-    canvas.addEventListener('mousemove', e => {
-      const r  = canvas.getBoundingClientRect();
-      const mx = e.clientX - r.left;
-      const my = e.clientY - r.top;
-      const hit = (canvas._bars||[]).find(b => mx>=b.x && mx<=b.x+b.w && my>=b.topY && my<=b.botY);
-      if (hit) showTooltipA(e.clientX, e.clientY, hit.yd);
-      else hideTooltip();
-    });
-    canvas.addEventListener('mouseleave', hideTooltip);
+// ── Refi computation ──────────────────────────────────────────
+function computeRefiSchedule(){
+  if(!window._ld)return null;
+  const{schedule}=window._ld,{effectiveMonthIdx,newApr,newTermYears}=refiState;
+  if(!newApr||parseFloat(newApr)<=0)return null;
+  const idx=Math.min(effectiveMonthIdx,schedule.length-1);
+  const P=idx>0?schedule[idx-1].balance:(parseFloat(state.loanBalance)||0);
+  if(P<=0)return null;
+  const r=parseFloat(newApr)/100/12,n=newTermYears*12;
+  let pPI;if(r===0)pPI=P/n;else{const pw=Math.pow(1+r,n);pPI=P*r*pw/(pw-1);}
+  const out=[];
+  for(let i=0;i<idx;i++)out.push({...schedule[i]});
+  let bal=P,totInt=0;
+  for(let i=0;i<n;i++){
+    const bm=schedule[idx+i];
+    let lbl;if(bm)lbl=bm.month;else{const prev=out[out.length-1],[py,pm]=prev.month.split('-').map(Number);const nm=pm%12+1,ny=nm===1?py+1:py;lbl=`${ny}-${String(nm).padStart(2,'0')}`;}
+    const interest=bal*r;let principal=pPI-interest;if(principal>bal)principal=bal;bal=Math.max(bal-principal,0);totInt+=interest;
+    const costs=bm||schedule[schedule.length-1];
+    out.push({month:lbl,principal,interest,balance:bal,tax:costs.tax,insurance:costs.insurance,hoa:costs.hoa,pmi:costs.pmi,other:costs.other,total:principal+interest+costs.tax+costs.insurance+costs.hoa+costs.pmi+costs.other});
+    if(bal<0.01)break;
   }
+  return{refiSchedule:out,paymentPI:pPI,totalRefiInterest:totInt};
+}
+function computeRefiMetrics(baseSch,refiSch){
+  const{effectiveMonthIdx,closingCost,horizonMonths}=refiState;
+  const idx=effectiveMonthIdx,cost=closingCost||0;
+  const bf=baseSch[idx],rf=refiSch[idx];
+  const deltaMonthly=bf&&rf?rf.total-bf.total:0;
+  const end=Math.min(idx+horizonMonths,Math.max(baseSch.length,refiSch.length));
+  let bInt=0,rInt=0,cumSav=0,breakEven=null;
+  for(let i=idx;i<end;i++){const bm=baseSch[i],rm=refiSch[i];if(!rm)break;if(bm)bInt+=bm.interest;rInt+=rm.interest;const sav=(bm?bm.total:0)-rm.total;cumSav+=sav;if(breakEven===null&&cumSav>=cost)breakEven=i-idx+1;}
+  return{deltaMonthly,interestDiff:bInt-rInt,netSavings:cumSav-cost,breakEven};
 }
 
-function showTooltipA(mx, my, yd) {
-  document.getElementById('tt-title').textContent = `Year ${yd.year}  (${yd.monthRange})`;
-  let html = '';
-  SEGMENTS.forEach(seg => {
-    const v = yd[seg] || 0;
-    if (v <= 0) return;
-    html += `<div class="tt-row">
-      <span style="color:${COLORS[seg]}">&#9632; ${SEG_LABELS[seg]}</span>
-      <strong>${fmtC0(v)}</strong></div>`;
-  });
-  html += `<div class="tt-divider"></div>
-    <div class="tt-row"><span>Total</span><strong>${fmtC0(yd.total)}</strong></div>`;
-  document.getElementById('tt-body').innerHTML = html;
-  placeTooltip(mx, my);
-  document.getElementById('tooltip').classList.add('visible');
+// ── Refi update ───────────────────────────────────────────────
+let _rdb;
+function updateRefi(){clearTimeout(_rdb);_rdb=setTimeout(_doUpdateRefi,80);}
+function _doUpdateRefi(){
+  readRefiState(); // FIX: read APR and other inputs from DOM
+  if(!window._ld){document.getElementById('refiOutput').innerHTML=`<div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-text">${t('empty-refi-no-base')}</div></div>`;return;}
+  const res=computeRefiSchedule();
+  if(!res){document.getElementById('refiOutput').innerHTML=`<div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-text">${t('empty-refi-no-apr')}</div></div>`;return;}
+  const{refiSchedule,paymentPI:rPI}=res;
+  const baseSch=window._ld.schedule,refiYearly=aggYearly(refiSchedule);
+  const metrics=computeRefiMetrics(baseSch,refiSchedule);
+  const effIdx=refiState.effectiveMonthIdx,effYrIdx=Math.floor(effIdx/12);
+  window._lrd={baseSch,refiSch:refiSchedule,baseYearly:window._ld.yearly,refiYearly,effIdx,effYrIdx};
+  const oMode=refiState.chartMode||'yearly';
+  document.getElementById('refiOutput').innerHTML=`
+    <div class="summary-grid" id="refiSummaryGrid"></div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-title">${t('chart-overlay-title')}</div>
+        <div class="toggle-group" id="overlayToggle" style="width:auto">
+          <button class="toggle-btn ${oMode==='yearly'?'active':''}" onclick="setOverlayMode('yearly')">${t('yearly')}</button>
+          <button class="toggle-btn ${oMode==='monthly'?'active':''}" onclick="setOverlayMode('monthly')">${t('monthly')}</button>
+        </div>
+      </div>
+      <div class="chart-scroll-wrap"><canvas id="chartOverlay"></canvas></div>
+      <div id="overlayZoomBar" style="${oMode==='monthly'?'':'display:none'}">
+        <div class="zoom-bar">
+          <div class="zoom-row"><span class="zoom-label" id="overlayZoomLabel">${t('zoom-show')}</span><input type="range" id="overlayZoom" min="6" max="80" step="2" value="${overlayView.barWidthPx}" oninput="onOverlayZoom(+this.value)"></div>
+        </div>
+      </div>
+      <div class="legend" id="legendOverlay"></div>
+    </div>`;
+  renderRefiSummary(metrics,rPI);
+  tryRenderOverlay(window._lrd,0);
+}
+function tryRenderOverlay(data,attempt){const cv=document.getElementById('chartOverlay');if(!cv)return;const w=cv.getBoundingClientRect().width||cv.offsetWidth||(cv.parentElement?cv.parentElement.clientWidth-40:0);if(!w&&attempt<15){setTimeout(()=>tryRenderOverlay(data,attempt+1),80);return;}renderOverlayChart(data);}
+function renderRefiSummary(metrics,rPI){
+  const{deltaMonthly,interestDiff,netSavings,breakEven}=metrics,cost=refiState.closingCost||0;
+  const bvSub=cost>0?t('card-breakeven-sub'):t('card-breakeven-sub-free');
+  const bvVal=cost>0?(breakEven?`${breakEven} ${t('mo')}`:t('none')):t('immediate');
+  const cards=[
+    {lk:'card-delta',sk:'card-delta-sub',val:(deltaMonthly>=0?'+':'')+fmtC(deltaMonthly),cls:deltaMonthly<0?'positive':'negative'},
+    {lk:'card-new-pi',sk:'card-new-pi-sub',val:fmtC(rPI)},
+    {lk:'card-int-saved',sk:'card-int-saved-sub',val:fmtC0(interestDiff),cls:interestDiff>0?'positive':'negative'},
+    {lk:'card-net-savings',sk:'',val:fmtC0(netSavings),sub:t('after-closing').replace('{cost}',fmtC0(cost)),cls:netSavings>0?'positive':'negative'},
+    {lk:'card-breakeven',sk:'',val:bvVal,sub:bvSub},
+  ];
+  document.getElementById('refiSummaryGrid').innerHTML=cards.map(c=>`<div class="card"><div class="card-label">${t(c.lk)}</div><div class="card-value${c.cls?' '+c.cls:''}">${c.val}</div><div class="card-sub">${c.sub||t(c.sk)}</div></div>`).join('');
 }
 
-function placeTooltip(mx, my) {
-  const tt = document.getElementById('tooltip');
-  const tw = 220, th = 200, margin = 14;
-  let left = mx + margin, top = my + margin;
-  if (left + tw > window.innerWidth)  left = mx - tw - margin;
-  if (top  + th > window.innerHeight) top  = my - th - margin;
-  tt.style.left = left + 'px';
-  tt.style.top  = top  + 'px';
-}
-
-function hideTooltip() {
-  document.getElementById('tooltip').classList.remove('visible');
-}
-
-// ---- Chart B: Principal vs Interest lines ----
-function drawChartB(yearly) {
-  const c = setupCanvas('chartB');
-  if (!c) return;
-  const { ctx, w, h } = c;
-  const colors = tc();
-  const pad = { t:16, r:16, b:36, l:60 };
-  const cw  = w - pad.l - pad.r;
-  const ch  = h - pad.t - pad.b;
-
-  ctx.clearRect(0, 0, w, h);
-
-  const maxVal = Math.max(...yearly.map(y => Math.max(y.avgPrincipal, y.avgInterest)));
-  const yMax   = niceMax(maxVal);
-
-  drawAxes(ctx, pad, w, h, yMax, 4, colors);
-
-  const n = yearly.length;
-
-  drawPolyline(ctx, yearly, 'avgPrincipal', pad, cw, ch, yMax, n, COLORS.principal);
-  drawPolyline(ctx, yearly, 'avgInterest',  pad, cw, ch, yMax, n, COLORS.interest);
-
-  // X labels
-  ctx.fillStyle    = colors.text;
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'top';
-  ctx.font = '10px -apple-system, sans-serif';
-  yearly.forEach((yd, i) => {
-    const show = n <= 10 || i === 0 || (i+1) % 5 === 0 || i === n-1;
-    if (show) ctx.fillText(yd.calYear, pad.l + i * cw/(n-1||1), h - pad.b + 6);
-  });
-}
-
-function drawPolyline(ctx, yearly, key, pad, cw, ch, yMax, n, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth   = 2.5;
-  ctx.lineJoin    = 'round';
-  ctx.lineCap     = 'round';
-  ctx.beginPath();
-  yearly.forEach((yd, i) => {
-    const x = pad.l + i * cw / (n-1||1);
-    const y = pad.t + ch * (1 - (yd[key]||0) / yMax);
-    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-  });
-  ctx.stroke();
-}
-
-// ---- Chart C: Remaining Balance ----
-function drawChartC(yearly) {
-  const c = setupCanvas('chartC');
-  if (!c) return;
-  const { ctx, w, h } = c;
-  const colors = tc();
-  const pad = { t:16, r:16, b:36, l:60 };
-  const cw  = w - pad.l - pad.r;
-  const ch  = h - pad.t - pad.b;
-
-  ctx.clearRect(0, 0, w, h);
-
-  const initBal = parseFloat(state.loanBalance) || 0;
-  const yMax    = niceMax(initBal || 1);
-  const n       = yearly.length;
-
-  drawAxes(ctx, pad, w, h, yMax, 4, colors);
-
-  // Fill area
-  ctx.fillStyle = COLORS.principal + '22';
-  ctx.beginPath();
-  ctx.moveTo(pad.l, pad.t + ch);
-  yearly.forEach((yd, i) => {
-    const x = pad.l + i * cw/(n-1||1);
-    const y = pad.t + ch * (1 - yd.endBalance / yMax);
-    ctx.lineTo(x, y);
-  });
-  ctx.lineTo(pad.l + (n-1)*cw/(n-1||1), pad.t + ch);
-  ctx.closePath();
-  ctx.fill();
-
-  drawPolyline(ctx, yearly, 'endBalance', pad, cw, ch, yMax, n, COLORS.principal);
-
-  // X labels
-  ctx.fillStyle    = colors.text;
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'top';
-  ctx.font = '10px -apple-system, sans-serif';
-  yearly.forEach((yd, i) => {
-    const show = n <= 10 || i === 0 || (i+1) % 5 === 0 || i === n-1;
-    if (show) ctx.fillText(yd.calYear, pad.l + i * cw/(n-1||1), h - pad.b + 6);
-  });
-}
-
-function renderLegends() {
-  const la = document.getElementById('legendA');
-  if (la) la.innerHTML = SEGMENTS.map(s =>
-    `<div class="legend-item"><div class="legend-dot" style="background:${COLORS[s]}"></div>${SEG_LABELS[s]}</div>`
-  ).join('');
-
-  const lb = document.getElementById('legendB');
-  if (lb) lb.innerHTML =
-    `<div class="legend-item"><div class="legend-dot" style="background:${COLORS.principal}"></div>Principal</div>
-     <div class="legend-item"><div class="legend-dot" style="background:${COLORS.interest}"></div>Interest</div>`;
-}
-
-// =============================================================
-// Table
-// =============================================================
-function setViewMode(mode) {
-  state.viewMode = mode;
-  saveState();
-  if (!window._lastData) return;
-  const { schedule, yearly } = window._lastData;
-  renderTable(schedule, yearly);
-  document.querySelectorAll('.table-controls .toggle-btn').forEach((b, i) => {
-    b.classList.toggle('active', (i===0 && mode==='yearly') || (i===1 && mode==='monthly'));
-  });
-}
-
-function renderTable(schedule, yearly) {
-  const tbl = document.getElementById('schedTable');
-  if (!tbl) return;
-
-  const headers = ['Period','Principal','Interest','Balance','Tax','Insurance','HOA','PMI','Other','Total'];
-  const th = `<thead><tr>${headers.map(h =>
-    `<th>${h}</th>`).join('')}</tr></thead>`;
-
-  let rows = '';
-  if (state.viewMode === 'yearly') {
-    yearly.forEach(y => {
-      rows += `<tr>
-        <td>${y.calYear}</td>
-        <td>${fmtC(y.principal)}</td>
-        <td>${fmtC(y.interest)}</td>
-        <td>${fmtC(y.endBalance)}</td>
-        <td>${fmtC(y.tax)}</td>
-        <td>${fmtC(y.insurance)}</td>
-        <td>${fmtC(y.hoa)}</td>
-        <td>${fmtC(y.pmi)}</td>
-        <td>${fmtC(y.other)}</td>
-        <td class="total-col">${fmtC(y.total)}</td>
-      </tr>`;
-    });
-  } else {
-    schedule.forEach(m => {
-      rows += `<tr>
-        <td>${m.month}</td>
-        <td>${fmtC(m.principal)}</td>
-        <td>${fmtC(m.interest)}</td>
-        <td>${fmtC(m.balance)}</td>
-        <td>${fmtC(m.tax)}</td>
-        <td>${fmtC(m.insurance)}</td>
-        <td>${fmtC(m.hoa)}</td>
-        <td>${fmtC(m.pmi)}</td>
-        <td>${fmtC(m.other)}</td>
-        <td class="total-col">${fmtC(m.total)}</td>
-      </tr>`;
-    });
+// ── Overlay charts ────────────────────────────────────────────
+function renderOverlayChart(data){if(refiState.chartMode==='monthly')drawOverlayMonthly(data);else drawOverlayYearly(data);renderOverlayLegend();}
+function drawOverlayYearly(data){
+  const{baseYearly,refiYearly,effYrIdx}=data;
+  const cv=document.getElementById('chartOverlay');if(cv){cv.style.width='';cv.style.height='';}
+  const c=setupCV('chartOverlay');if(!c)return;
+  const{ctx,w,h,cv:canvas}=c,col=tc(),pad={t:20,r:16,b:52,l:60},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  ctx.clearRect(0,0,w,h);
+  const n=Math.max(baseYearly.length,refiYearly.length);
+  const yMax=niceMax(Math.max(...baseYearly.map(y=>y.total),...refiYearly.map(y=>y.total)));
+  drawAxes(ctx,pad,w,h,yMax,5,col);
+  const step=cw/n,pairW=step*0.76,barW=pairW/2-1,rects=[];
+  for(let i=0;i<n;i++){
+    const bd=baseYearly[i],rd=refiYearly[i],px=pad.l+i*step+(step-pairW)/2,bx=px,rx=px+barW+2;
+    if(bd)drawStackedBar(ctx,bx,pad.t,ch,barW,yMax,bd,COLORS);
+    if(rd)drawStackedBar(ctx,rx,pad.t,ch,barW,yMax,rd,COLORS_REFI);
+    if(i===effYrIdx){ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(px-2,pad.t);ctx.lineTo(px-2,pad.t+ch);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f59e0b';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(t('refi-marker'),px,pad.t+2);}
+    const show=n<=15||i===0||(i+1)%5===0||i===n-1;
+    if(show&&bd){ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';ctx.fillText(bd.calYear,px+pairW/2,h-pad.b+6);}
+    rects.push({x:px,w:pairW,topY:pad.t,botY:pad.t+ch,bd,rd,label:bd?`${t('yearly')} ${bd.year} (${bd.calYear})`:''});
   }
-  tbl.innerHTML = th + `<tbody>${rows}</tbody>`;
+  canvas._rects=rects;
+  setHover(canvas,e=>{const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;const hit=canvas._rects.find(b=>mx>=b.x&&mx<=b.x+b.w&&my>=b.topY&&my<=b.botY);if(hit)showTTOverlay(e.clientX,e.clientY,hit.label,hit.bd,hit.rd);else hideTooltip();});
+}
+function drawOverlayMonthly(data){
+  const{baseSch,refiSch,effIdx}=data;
+  const cv=document.getElementById('chartOverlay');if(cv){cv.style.width='';cv.style.height='';}
+  const c=setupCV('chartOverlay');if(!c)return;
+  const{ctx,w,h,cv:canvas}=c,col=tc(),pad={t:20,r:20,b:52,l:60},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  const totalN=Math.max(baseSch.length,refiSch.length);
+  const bw=Math.max(8,overlayView.barWidthPx);
+  const totalW=totalN*bw,maxScroll=Math.max(0,totalW-cw);
+  overlayView.scrollOffsetPx=Math.max(0,Math.min(overlayView.scrollOffsetPx,maxScroll));
+  const scroll=overlayView.scrollOffsetPx;
+  const startIdx=Math.max(0,Math.floor(scroll/bw));
+  const endIdx=Math.min(totalN-1,Math.ceil((scroll+cw)/bw));
+  const zl=document.getElementById('overlayZoomLabel');
+  if(zl)zl.textContent=`~${Math.round(cw/bw)} ${t('zoom-mo')}`;
+  ctx.clearRect(0,0,w,h);
+  const yMax=niceMax(Math.max(...baseSch.map(m=>m.total),...refiSch.map(m=>m.total)));
+  for(let i=0;i<=5;i++){const val=(yMax/5)*i,y=pad.t+ch-(val/yMax)*ch;ctx.strokeStyle=col.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillStyle=col.text;ctx.textAlign='right';ctx.textBaseline='middle';ctx.font='10px -apple-system,sans-serif';ctx.fillText(fmtY(val),pad.l-6,y);}
+  ctx.strokeStyle=col.axis;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();
+  const gap=Math.max(1,bw*0.1),BB=Math.max(2,(bw-gap)/2),RB=BB,rects=[];
+  ctx.save();ctx.beginPath();ctx.rect(pad.l,pad.t-2,cw,ch+46);ctx.clip();
+  for(let i=startIdx;i<=endIdx;i++){
+    const bd=baseSch[i]||null,rd=refiSch[i]||null;
+    const sx=pad.l+i*bw-scroll,bx=sx,rx=sx+BB+gap;
+    if(bd)drawStackedBar(ctx,bx,pad.t,ch,BB,yMax,bd,COLORS);
+    if(rd)drawStackedBar(ctx,rx,pad.t,ch,RB,yMax,rd,COLORS_REFI);
+    if(i===effIdx){ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(sx-1,pad.t);ctx.lineTo(sx-1,pad.t+ch);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f59e0b';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(t('refi-marker'),sx,pad.t+2);}
+    const labelStep=Math.max(1,Math.ceil(38/bw));
+    if(i%labelStep===0||i===totalN-1){const m=bd||rd;if(m){ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';ctx.fillText(m.month,sx+bw/2,h-pad.b+4);}}
+    rects.push({x:sx,w:bw,topY:pad.t,botY:pad.t+ch,bd,rd,label:(bd||rd)?.month||''});
+  }
+  ctx.restore();
+  canvas._rects=rects;
+  setHover(canvas,e=>{const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;const hit=canvas._rects.find(b=>mx>=b.x&&mx<=b.x+b.w&&my>=b.topY&&my<=b.botY);if(hit)showTTOverlay(e.clientX,e.clientY,hit.label,hit.bd,hit.rd);else hideTooltip();});
+  setTouch(canvas,dx=>{overlayView.scrollOffsetPx=Math.max(0,Math.min(maxScroll,overlayView.scrollOffsetPx-dx));drawOverlayMonthly(data);});
+  setPanWheel(canvas,()=>overlayView.scrollOffsetPx,(v)=>{overlayView.scrollOffsetPx=Math.max(0,Math.min(maxScroll,v));},()=>drawOverlayMonthly(data));
+}
+function renderOverlayLegend(){
+  const el=document.getElementById('legendOverlay');if(!el)return;
+  const mk=p=>SEGMENTS.map(s=>`<div class="legend-item"><div class="legend-dot" style="background:${p[s]}"></div>${sl(s)}</div>`).join('');
+  el.innerHTML=`<div class="legend-group-label">${t('legend-baseline')}</div><div style="display:flex;flex-wrap:wrap;gap:8px">${mk(COLORS)}</div><div class="legend-group-label">${t('legend-refi')}</div><div style="display:flex;flex-wrap:wrap;gap:8px">${mk(COLORS_REFI)}</div>`;
 }
 
-// =============================================================
-// CSV Export
-// =============================================================
-function exportCSV() {
-  if (!window._lastData) return;
-  const { schedule } = window._lastData;
-  const hdr = 'Month,Principal,Interest,Balance,Tax,Insurance,HOA,PMI,Other,Total';
-  const rows = schedule.map(m =>
-    [m.month, m.principal, m.interest, m.balance,
-     m.tax, m.insurance, m.hoa, m.pmi, m.other, m.total]
-    .map(v => typeof v==='number' ? v.toFixed(2) : v).join(',')
-  );
-  const csv  = [hdr, ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = 'mortgage_schedule.csv'; a.click();
-  URL.revokeObjectURL(url);
-}
+// ── Zoom helpers ──────────────────────────────────────────────
+function onChartAZoom(bw){const cv=document.getElementById('chartA');const cw=Math.max(100,(cv?.getBoundingClientRect().width||400)-80);const oldBw=chartAView.barWidthPx||20;const centerIdx=(chartAView.scrollOffsetPx+cw/2)/oldBw;chartAView.barWidthPx=bw;const N=window._ld?.schedule.length||360;chartAView.scrollOffsetPx=Math.max(0,Math.min(Math.max(0,N*bw-cw),centerIdx*bw-cw/2));if(window._ld)drawChartAMonthly(window._ld.schedule);}
+function onOverlayZoom(bw){const cv=document.getElementById('chartOverlay');const cw=Math.max(100,(cv?.getBoundingClientRect().width||400)-80);const oldBw=overlayView.barWidthPx||20;const centerIdx=(overlayView.scrollOffsetPx+cw/2)/oldBw;overlayView.barWidthPx=bw;const N=Math.max(window._lrd?.baseSch.length||0,window._lrd?.refiSch.length||0);overlayView.scrollOffsetPx=Math.max(0,Math.min(Math.max(0,N*bw-cw),centerIdx*bw-cw/2));if(window._lrd)renderOverlayChart(window._lrd);}
 
-// =============================================================
-// Resize
-// =============================================================
-let _resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(_resizeTimer);
-  _resizeTimer = setTimeout(() => {
-    if (window._lastData) tryRenderCharts(window._lastData, 0);
-  }, 150);
-});
+// ── Resize ────────────────────────────────────────────────────
+let _rt;window.addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(()=>{if(window._ld)tryRenderCharts(window._ld,0);if(window._lrd)tryRenderOverlay(window._lrd,0);},150);});
 
-// =============================================================
-// Go
-// =============================================================
 init();
 </script>
 </body>
