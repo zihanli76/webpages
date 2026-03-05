@@ -353,7 +353,20 @@ function saveState(){try{localStorage.setItem('mvis3',JSON.stringify(state));}ca
 
 // ── Canvas hover / touch ──────────────────────────────────────
 function setHover(cv,fn){if(cv._mmH)cv.removeEventListener('mousemove',cv._mmH);if(cv._mlH)cv.removeEventListener('mouseleave',cv._mlH);cv._mmH=fn;cv._mlH=hideTooltip;cv.addEventListener('mousemove',cv._mmH);cv.addEventListener('mouseleave',cv._mlH);}
-function setTouch(cv,onPan){if(cv._tsH)cv.removeEventListener('touchstart',cv._tsH);if(cv._tmH)cv.removeEventListener('touchmove',cv._tmH);let sx=null;cv._tsH=e=>{sx=e.touches[0].clientX;};cv._tmH=e=>{if(sx===null)return;const dx=e.touches[0].clientX-sx;if(Math.abs(dx)>4){onPan(dx);sx=e.touches[0].clientX;}};cv.addEventListener('touchstart',cv._tsH,{passive:true});cv.addEventListener('touchmove',cv._tmH,{passive:true});}
+function niceLabelStep(bw){const raw=Math.ceil(50/bw);for(const s of [1,2,3,6,12,24,36,60])if(s>=raw)return s;return 60;}
+function setTouch(cv,onPan){
+  if(cv._tsH)cv.removeEventListener('touchstart',cv._tsH);
+  if(cv._tmH)cv.removeEventListener('touchmove',cv._tmH);
+  if(cv._teH)cv.removeEventListener('touchend',cv._teH);
+  if(cv._momId){cancelAnimationFrame(cv._momId);cv._momId=null;}
+  let sx=null,vx=0,lastT=0;
+  cv._tsH=e=>{sx=e.touches[0].clientX;vx=0;lastT=Date.now();if(cv._momId){cancelAnimationFrame(cv._momId);cv._momId=null;}};
+  cv._tmH=e=>{if(sx===null)return;const now=Date.now(),dt=Math.max(1,now-lastT),dx=e.touches[0].clientX-sx;if(Math.abs(dx)>4){vx=dx/dt;lastT=now;onPan(dx);sx=e.touches[0].clientX;}};
+  cv._teH=()=>{sx=null;let vel=vx*16;const tick=()=>{if(Math.abs(vel)<0.5)return;onPan(vel);vel*=0.92;cv._momId=requestAnimationFrame(tick);};cv._momId=requestAnimationFrame(tick);};
+  cv.addEventListener('touchstart',cv._tsH,{passive:true});
+  cv.addEventListener('touchmove',cv._tmH,{passive:true});
+  cv.addEventListener('touchend',cv._teH,{passive:true});
+}
 function setPanWheel(cv,getScroll,setScroll,redraw){
   if(cv._whH)cv.removeEventListener('wheel',cv._whH);
   cv._whH=e=>{e.preventDefault();const d=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY)*1.5;setScroll(getScroll()+d);redraw();};
@@ -527,7 +540,7 @@ function drawChartAMonthly(schedule){
   for(let i=startIdx;i<=endIdx;i++){
     const m=schedule[i],sx=pad.l+i*bw-scroll,bx=sx+(bw-barW)/2;
     drawStackedBar(ctx,bx,pad.t,ch,barW,yMax,m,COLORS);
-    const labelStep=Math.max(1,Math.ceil(38/bw));
+    const labelStep=niceLabelStep(bw);
     if(i%labelStep===0||i===N-1){ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';ctx.fillText(m.month,bx+barW/2,h-pad.b+4);}
     rects.push({x:bx,w:barW,topY:pad.t,botY:pad.t+ch,yd:m});
   }
@@ -740,7 +753,7 @@ function drawOverlayMonthly(data){
     if(bd)drawStackedBar(ctx,bx,pad.t,ch,BB,yMax,bd,COLORS);
     if(rd)drawStackedBar(ctx,rx,pad.t,ch,RB,yMax,rd,COLORS_REFI);
     if(i===effIdx){ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(sx-1,pad.t);ctx.lineTo(sx-1,pad.t+ch);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#f59e0b';ctx.font='bold 9px -apple-system,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(t('refi-marker'),sx,pad.t+2);}
-    const labelStep=Math.max(1,Math.ceil(38/bw));
+    const labelStep=niceLabelStep(bw);
     if(i%labelStep===0||i===totalN-1){const m=bd||rd;if(m){ctx.fillStyle=col.text;ctx.textAlign='center';ctx.textBaseline='top';ctx.font='10px -apple-system,sans-serif';ctx.fillText(m.month,sx+bw/2,h-pad.b+4);}}
     rects.push({x:sx,w:bw,topY:pad.t,botY:pad.t+ch,bd,rd,label:(bd||rd)?.month||''});
   }
